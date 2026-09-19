@@ -33,3 +33,13 @@
   stroke-linejoin: round;
   stroke-width: 4px;
 }
+
+/* Maps that can be dragged and zoomed with the mouse. */
+.rm-interactive {
+  cursor: grab;
+  user-select: none;
+}
+
+.rm-interactive.is-dragging {
+  cursor: grabbing;
+}
