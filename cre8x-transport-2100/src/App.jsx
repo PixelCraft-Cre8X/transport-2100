@@ -3,7 +3,6 @@ import Layout from "./components/Layout";
 import Home from "./pages/Home";
 import Journey from "./pages/Journey";
 import Tracking from "./pages/Tracking";
-import "./App.css";
 
 export default function App() {
   return (

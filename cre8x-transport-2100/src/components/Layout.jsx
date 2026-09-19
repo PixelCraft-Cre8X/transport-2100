@@ -3,22 +3,37 @@ import { NavLink, Outlet, useLocation } from "react-router-dom";
 import {
   ArrowUpRight,
   Compass,
-  Map,
-  Route,
-  Radio,
-  Leaf,
-  Sun,
   Globe2,
+  Map,
+  Radio,
+  Route,
+  Sun,
 } from "lucide-react";
+
 const links = [
   { to: "/", label: "Discover", icon: Compass },
-  { to: "/journey", label: "My journey", icon: Route },
-  { to: "/tracking", label: "Live map", icon: Map },
+  { to: "/journey", label: "My Journey", icon: Route },
+  { to: "/tracking", label: "Live Map", icon: Map },
 ];
+
+function Brand() {
+  return (
+    <NavLink to="/" className="brand" aria-label="Lanka 2100 home">
+      <span className="brand-mark">
+        <Route size={24} />
+      </span>
+      <span>
+        LANKA<span className="brand-year"> / 2100</span>
+        <small>THE WAY FORWARD.</small>
+      </span>
+    </NavLink>
+  );
+}
+
 function Navigation({ mobile = false, search }) {
   return (
     <nav
-      className={mobile ? "bottom-nav" : "side-nav"}
+      className={mobile ? "bottom-nav" : "desktop-nav"}
       aria-label={mobile ? "Mobile navigation" : "Main navigation"}
     >
       {links.map(({ to, label, icon: Icon }) => (
@@ -35,84 +50,68 @@ function Navigation({ mobile = false, search }) {
     </nav>
   );
 }
+
+function Header({ search, pathname }) {
+  return (
+    <header className="site-header">
+      <div className="header-inner">
+        <Brand />
+        <Navigation search={search} />
+        <div className="header-meta">
+          <span className="weather-meta">
+            <Sun size={16} /> 28° <span>Colombo</span>
+          </span>
+          <span className="header-divider" />
+          <span className="language-meta">
+            <Globe2 size={15} /> EN
+          </span>
+          <div className="avatar" aria-label="Demo traveler profile">
+            KA
+          </div>
+        </div>
+      </div>
+      <div className="mobile-page-title">
+        {pathname === "/journey"
+          ? "Your journey"
+          : pathname === "/tracking"
+            ? "Live tracking"
+            : "Discover Sri Lanka"}
+      </div>
+    </header>
+  );
+}
+
 export default function Layout() {
   const { pathname, search } = useLocation();
+
   useEffect(() => {
     window.scrollTo(0, 0);
     document.title = `${pathname === "/tracking" ? "Live tracking" : pathname === "/journey" ? "Your journey" : "Discover"} · LANKA / 2100`;
   }, [pathname]);
+
   return (
     <div className="app-shell">
       <a href="#main-content" className="skip-link">
         Skip to content
       </a>
-      <aside className="sidebar">
-        <NavLink to="/" className="brand" aria-label="Lanka 2100 home">
-          <span className="brand-mark">
-            <Route size={24} />
-          </span>
-          <span>
-            LANKA<span className="brand-year"> / 2100</span>
-            <small>THE WAY FORWARD.</small>
-          </span>
-        </NavLink>
-        <div className="sidebar-caption">YOUR CONNECTED WORLD</div>
-        <Navigation search={search} />
-        <div className="sidebar-bottom">
-          <div className="future-note">
-            <Leaf size={21} />
-            <p>
-              A better way to move.
-              <br />
-              <strong>A lighter footprint.</strong>
-            </p>
-            <div className="future-line" />
-            <small>100% electric ecosystem</small>
-          </div>
-          <div className="system-online">
-            <Radio size={15} />
-            <span>Network connected</span>
-            <span className="status-dot" />
-          </div>
-          <p className="sidebar-foot">
-            CRE8X 3.0 <span>THE ORACLE CHALLENGE</span>
-          </p>
-        </div>
-      </aside>
+
       <div className="main-shell">
-        <header className="topbar">
-          <div className="breadcrumb">
-            Explore <span>/</span>{" "}
-            <strong>
-              {pathname === "/journey"
-                ? "Your journey"
-                : pathname === "/tracking"
-                  ? "Live tracking"
-                  : "Discover Sri Lanka"}
-            </strong>
-          </div>
-          <div className="topbar-meta">
-            <span>
-              <Sun size={16} /> 28°{" "}
-              <span className="weather-location">Colombo</span>
-            </span>
-            <span className="topbar-divider" />
-            <span>
-              <Globe2 size={15} /> EN
-            </span>
-            <div className="avatar" aria-label="Demo traveler profile">
-              KA
-            </div>
-          </div>
-        </header>
+        <Header search={search} pathname={pathname} />
+
         <main id="main-content" tabIndex={-1}>
           <Outlet />
         </main>
+
         <footer className="page-footer">
           <span>One island. Infinite possibilities.</span>
           <span>SRI LANKA, REIMAGINED · 2100</span>
+          <span className="footer-network">
+            <Radio size={13} /> Network connected{" "}
+            <span className="status-dot" />
+          </span>
         </footer>
       </div>
+
       <Navigation mobile search={search} />
     </div>
   );
