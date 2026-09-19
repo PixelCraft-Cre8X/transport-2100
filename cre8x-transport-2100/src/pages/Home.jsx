@@ -73,7 +73,12 @@ export default function Home() {
         <div className="hero-shade" />
         <div className="hero-layout">
           <div className="hero-copy">
-            <h1>Welcome to MoveOne.</h1>
+            <h1>
+              <span>Welcome to</span>
+              <span>
+                Move<span className="hero-title-accent">One</span>.
+              </span>
+            </h1>
             <p>Smarter journeys, all in one place.</p>
           </div>
           <JourneyPlannerCard />
