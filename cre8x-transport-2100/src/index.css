@@ -299,7 +299,7 @@ main {
   object-fit: cover;
 }
 .hero-image img {
-  object-position: center 47%;
+  object-position: center 10%;
 }
 .hero-shade {
   position: absolute;

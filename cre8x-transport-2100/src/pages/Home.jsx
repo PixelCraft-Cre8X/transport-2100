@@ -63,7 +63,7 @@ export default function Home() {
       <section className="hero-section">
         {desktop && (
           <picture className="hero-image">
-            <source media="(max-width: 600px)" srcSet={mobile} />
+            <source media="(max-width: 767px)" srcSet={mobile} />
             <img
               src={desktop}
               alt="Colombo in 2100 with elevated SkyRail, electric buses, and air taxis along the ocean"
