@@ -234,7 +234,7 @@ export default function Journey() {
                 })}
               </ol>
               <aside className="jm-destination">
-                <DestinationArt landmark={to.landmark} />
+                <DestinationArt src={to.image} alt={`${to.name} destination`} />
                 <div>
                   <span>Arrive at</span>
                   <strong>{to.name}</strong>
