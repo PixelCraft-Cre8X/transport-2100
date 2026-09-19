@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { NavLink, Outlet, useLocation } from "react-router-dom";
 import {
   ArrowUpRight,
@@ -7,8 +7,11 @@ import {
   Map,
   Radio,
   Route,
+  Sparkles,
   Sun,
 } from "lucide-react";
+import logoImage from "../assets/logo.png";
+import JourneyAIPreview from "./JourneyAIPreview";
 
 const links = [
   { to: "/", label: "Discover", icon: Compass },
@@ -18,19 +21,17 @@ const links = [
 
 function Brand() {
   return (
-    <NavLink to="/" className="brand" aria-label="Lanka 2100 home">
-      <span className="brand-mark">
-        <Route size={24} />
-      </span>
-      <span>
-        LANKA<span className="brand-year"> / 2100</span>
+    <NavLink to="/" className="brand" aria-label="moveone home">
+      <img className="brand-logo" src={logoImage} alt="" />
+      <span className="brand-name">
+        moveone
         <small>THE WAY FORWARD.</small>
       </span>
     </NavLink>
   );
 }
 
-function Navigation({ mobile = false, search }) {
+function Navigation({ mobile = false, search, onOpenAI }) {
   return (
     <nav
       className={mobile ? "bottom-nav" : "desktop-nav"}
@@ -47,16 +48,21 @@ function Navigation({ mobile = false, search }) {
           {!mobile && <ArrowUpRight className="nav-arrow" size={15} />}
         </NavLink>
       ))}
+      <button className="ai-nav-button" type="button" onClick={onOpenAI}>
+        <Sparkles size={18} strokeWidth={1.7} />
+        <span>{mobile ? "AI" : "Journey AI"}</span>
+        {!mobile && <ArrowUpRight className="nav-arrow" size={15} />}
+      </button>
     </nav>
   );
 }
 
-function Header({ search, pathname }) {
+function Header({ search, pathname, onOpenAI }) {
   return (
     <header className="site-header">
       <div className="header-inner">
         <Brand />
-        <Navigation search={search} />
+        <Navigation search={search} onOpenAI={onOpenAI} />
         <div className="header-meta">
           <span className="weather-meta">
             <Sun size={16} /> 28° <span>Colombo</span>
@@ -83,10 +89,13 @@ function Header({ search, pathname }) {
 
 export default function Layout() {
   const { pathname, search } = useLocation();
+  const [journeyAIOpen, setJourneyAIOpen] = useState(false);
+  const openJourneyAI = useCallback(() => setJourneyAIOpen(true), []);
+  const closeJourneyAI = useCallback(() => setJourneyAIOpen(false), []);
 
   useEffect(() => {
     window.scrollTo(0, 0);
-    document.title = `${pathname === "/tracking" ? "Live tracking" : pathname === "/journey" ? "Your journey" : "Discover"} · LANKA / 2100`;
+    document.title = `${pathname === "/tracking" ? "Live tracking" : pathname === "/journey" ? "Your journey" : "Discover"} · moveone`;
   }, [pathname]);
 
   return (
@@ -96,15 +105,19 @@ export default function Layout() {
       </a>
 
       <div className="main-shell">
-        <Header search={search} pathname={pathname} />
+        <Header
+          search={search}
+          pathname={pathname}
+          onOpenAI={openJourneyAI}
+        />
 
         <main id="main-content" tabIndex={-1}>
-          <Outlet />
+          <Outlet context={{ onOpenAI: openJourneyAI }} />
         </main>
 
         <footer className="page-footer">
           <span>One island. Infinite possibilities.</span>
-          <span>SRI LANKA, REIMAGINED · 2100</span>
+          <span>moveone · SRI LANKA, REIMAGINED · 2100</span>
           <span className="footer-network">
             <Radio size={13} /> Network connected{" "}
             <span className="status-dot" />
@@ -112,7 +125,8 @@ export default function Layout() {
         </footer>
       </div>
 
-      <Navigation mobile search={search} />
+      <Navigation mobile search={search} onOpenAI={openJourneyAI} />
+      <JourneyAIPreview open={journeyAIOpen} onClose={closeJourneyAI} />
     </div>
   );
 }

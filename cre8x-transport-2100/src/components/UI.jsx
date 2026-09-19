@@ -40,12 +40,16 @@ export function SectionHeader({ eyebrow, title, children }) {
     </div>
   );
 }
-export function TransportModeCard({ mode, onSelect }) {
+const transportCardDescriptions = {
+  rail: "Elevated autonomous rail",
+  bus: "Autonomous local transport",
+  air: "Fast autonomous air travel",
+};
+
+export function TransportModeCard({ mode }) {
   return (
-    <button
+    <article
       className={`transport-card ${mode.color}`}
-      onClick={onSelect}
-      aria-label={`Explore ${mode.name}`}
     >
       <div className="transport-art">
         <ModeIcon mode={mode.id} size={64} />
@@ -53,15 +57,11 @@ export function TransportModeCard({ mode, onSelect }) {
         <ArrowUpRight className="transport-arrow" size={18} />
       </div>
       <div className="transport-copy">
-        <span className="tiny-label">{mode.detail}</span>
+        <span className="tiny-label">AUTONOMOUS SYSTEM</span>
         <h3>{mode.short}</h3>
-        <p>{mode.description}</p>
-        <span className="mode-status">
-          <span className="status-dot" />
-          Network online
-        </span>
+        <p>{transportCardDescriptions[mode.id]}</p>
       </div>
-    </button>
+    </article>
   );
 }
 export function SmartRoadPanel() {
