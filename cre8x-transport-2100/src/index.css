@@ -1488,3 +1488,12 @@ main {
   border-color: rgba(52, 211, 153, 0.3);
   background: rgba(52, 211, 153, 0.09);
 }
+
+@media (max-width: 767px) {
+  :root {
+    --text-xs: 0.875rem;
+    --text-sm: 1rem;
+    --text-md: 1.125rem;
+    --text-lg: 1.3125rem;
+  }
+}
