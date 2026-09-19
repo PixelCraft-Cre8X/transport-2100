@@ -1,0 +1,35 @@
+/* Shared styles for the illustrated island maps (journey preview and live map). */
+
+.rm-coast-glow {
+  fill: none;
+  stroke: #22d3ee;
+  stroke-opacity: 0.6;
+  stroke-width: 8;
+}
+
+.rm-contour {
+  fill: none;
+  stroke: #35b7d8;
+  stroke-opacity: 0.07;
+}
+
+.rm-coast {
+  fill: none;
+  stroke: #3fb6d4;
+  stroke-opacity: 0.55;
+  stroke-width: 1.2;
+}
+
+.rm-town circle {
+  fill: #a9c3d6;
+  opacity: 0.85;
+}
+
+.rm-town text {
+  fill: #d6e3ee;
+  font-size: 13px;
+  paint-order: stroke;
+  stroke: #06111d;
+  stroke-linejoin: round;
+  stroke-width: 4px;
+}

@@ -85,32 +85,14 @@ export function buildRoutes(from, to, walking) {
       };
     });
 }
-// Illustrative geography for the 2100 network; replace with routing API geometry later.
-export function mapRoutePoints(from, to, segments) {
-  let elapsed = 0;
-  const total = segments.reduce((sum, s) => sum + s.minutes, 0);
-  const interpolate = (t) =>
-    from.coordinates.map((v, i) => v + (to.coordinates[i] - v) * t);
-  return segments.map((segment) => {
-    const start = elapsed / total;
-    elapsed += segment.minutes;
-    const end = elapsed / total;
-    return {
-      ...segment,
-      coordinates: [
-        interpolate(start),
-        interpolate((start + end) / 2),
-        interpolate(end),
-      ],
-    };
-  });
-}
 export const formatFare = (cost) => `LKR ${cost.toLocaleString("en-US")}`;
 const DEPARTURE_MINUTES = 9 * 60;
-// Wall-clock time (HH:MM) `minutes` after the 09:00 demo departure.
-export function clockTime(minutes = 0) {
-  const total = DEPARTURE_MINUTES + minutes;
-  return `${String(Math.floor(total / 60) % 24).padStart(2, "0")}:${String(total % 60).padStart(2, "0")}`;
+// Wall-clock time (HH:MM, or HH:MM:SS) `minutes` after the 09:00 demo departure.
+export function clockTime(minutes = 0, { seconds = false } = {}) {
+  const total = Math.round((DEPARTURE_MINUTES + minutes) * 60);
+  const pad = (n) => String(n).padStart(2, "0");
+  const hhmm = `${pad(Math.floor(total / 3600) % 24)}:${pad(Math.floor(total / 60) % 60)}`;
+  return seconds ? `${hhmm}:${pad(total % 60)}` : hhmm;
 }
 export const arrivalTime = clockTime;
 // Segments annotated with the minute offset (from departure) at which each begins.

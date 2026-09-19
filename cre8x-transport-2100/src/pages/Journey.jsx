@@ -17,6 +17,7 @@ import {
 } from "../data/journeys";
 import { ModeIcon } from "../components/UI";
 import JourneyMap from "../components/JourneyMap";
+import Switch from "../components/Switch";
 import DestinationArt from "../components/DestinationArt";
 import "./Journey.css";
 
@@ -76,7 +77,6 @@ export default function Journey() {
             <h1>
               {from.name} <ArrowRight aria-label="to" /> {to.name}
             </h1>
-            <p>One seamless journey. Tailored to you.</p>
           </header>
 
           <div className="jm-toolbar">
@@ -88,19 +88,16 @@ export default function Journey() {
             <span className="jm-toggle-row">
               <Footprints size={20} />
               <span id="jm-walking-label">Include walking</span>
-              <button
-                type="button"
-                role="switch"
-                aria-checked={includeWalking}
-                aria-labelledby="jm-walking-label"
-                className="jm-switch"
-                onClick={() =>
+              <Switch
+                checked={includeWalking}
+                labelledBy="jm-walking-label"
+                onChange={(on) =>
                   setParams(
                     journeyQuery(
                       from.name,
                       to.name,
                       selected.id,
-                      includeWalking ? "low" : "include",
+                      on ? "include" : "low",
                     ),
                   )
                 }
@@ -111,7 +108,6 @@ export default function Journey() {
           <fieldset className="jm-options">
             <legend>
               <h2>Select your journey</h2>
-              <p>{routes.length} smart routes for your trip</p>
             </legend>
             {routes.map((option) => {
               const isSelected = selected.id === option.id;

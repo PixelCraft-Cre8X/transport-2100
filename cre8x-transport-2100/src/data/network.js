@@ -111,6 +111,17 @@ export const mapTowns = [
   { name: "Kandy", coordinates: [80.633, 7.291] },
 ];
 
+// Places labelled on the live map; `side` is which side of the dot the name sits.
+export const trackingTowns = [
+  ...coastalCorridor.filter((t) => t.name !== "Galle"),
+  { name: "Weligama", coordinates: [80.43, 5.975] },
+  { name: "Kaduwela", coordinates: [79.98, 6.93], side: "right" },
+  { name: "Homagama", coordinates: [80.0, 6.84], side: "right" },
+  { name: "Horana", coordinates: [80.06, 6.715], side: "right" },
+  { name: "Elpitiya", coordinates: [80.16, 6.29], side: "right" },
+  { name: "Kandy", coordinates: [80.633, 7.291], side: "right" },
+];
+
 // Simplified island outline (lon, lat), clockwise from the southern tip.
 export const islandOutline = [
   [80.59, 5.92],
@@ -197,6 +208,7 @@ export const networkStatus = transportModes.map(({ id, short, status }) => ({
 export const comparisonTags = [
   {
     id: "recommended",
+    emissionsSaved: 78,
     label: "Recommended",
     icon: "orbit",
     highlight: "Best choice",
@@ -210,6 +222,7 @@ export const comparisonTags = [
   },
   {
     id: "fastest",
+    emissionsSaved: 42,
     label: "Fastest",
     icon: "zap",
     description: "Get there in the shortest time",
@@ -222,6 +235,7 @@ export const comparisonTags = [
   },
   {
     id: "simplest",
+    emissionsSaved: 74,
     label: "Simplest",
     icon: "route",
     description: "One ride. Zero transfers.",
@@ -234,6 +248,7 @@ export const comparisonTags = [
   },
   {
     id: "comfortable",
+    emissionsSaved: 72,
     label: "Comfortable",
     icon: "armchair",
     description: "A little extra room to relax",
@@ -246,6 +261,7 @@ export const comparisonTags = [
   },
   {
     id: "eco",
+    emissionsSaved: 86,
     label: "Eco / Cost-saving",
     icon: "leaf",
     description: "Lower cost, lower emissions",
@@ -258,6 +274,7 @@ export const comparisonTags = [
   },
   {
     id: "healthy",
+    emissionsSaved: 91,
     label: "Healthy choice",
     icon: "walk",
     description: "Make movement part of your day",
@@ -267,24 +284,5 @@ export const comparisonTags = [
     minutes: 61,
     walk: 18,
     modes: ["walk", "rail", "walk"],
-  },
-];
-export const smartAlerts = [
-  {
-    mode: "road",
-    title: "Smarter roads, smoother rides",
-    description:
-      "Smart Bus demo reroute avoids road maintenance near the interchange.",
-  },
-  {
-    mode: "rail",
-    title: "SkyRail is running on time",
-    description: "All southern corridor connections are operating normally.",
-  },
-  {
-    mode: "air",
-    title: "A faster way is available",
-    description:
-      "Air Taxi departures are available at participating mobility hubs.",
   },
 ];

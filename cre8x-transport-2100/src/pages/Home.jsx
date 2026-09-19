@@ -1,6 +1,13 @@
 import { useState } from "react";
 import { Link, useOutletContext } from "react-router-dom";
-import { ArrowUpRight, Check, MapPin, X } from "lucide-react";
+import {
+  ArrowRight,
+  ArrowUpRight,
+  Check,
+  MapPin,
+  Pencil,
+  X,
+} from "lucide-react";
 import JourneyPlannerCard from "../components/JourneyPlannerCard";
 import { SectionHeader, TransportModeCard, ModeIcon } from "../components/UI";
 import { journeyQuery } from "../data/journeys";
@@ -92,6 +99,7 @@ export default function Home() {
             <h2 id="quick-destinations-title">Quick destinations</h2>
           </div>
           <button className="quick-change" type="button" onClick={openDestinationEditor}>
+            <Pencil size={14} aria-hidden="true" />
             Change
           </button>
         </div>
@@ -109,7 +117,7 @@ export default function Home() {
                 <strong>{name}</strong>
                 <small>From Maharagama</small>
               </span>
-              <ArrowUpRight size={14} />
+              <ArrowRight size={14} />
             </Link>
           ))}
         </div>
@@ -135,12 +143,19 @@ export default function Home() {
             <span className="eyebrow">JOURNEY AI</span>
             <h2>Plan your trip with voice.</h2>
           </div>
-          <button className="button assistant-button" type="button" onClick={onOpenAI}>
+          <button
+            className="button assistant-button"
+            type="button"
+            onClick={onOpenAI}
+          >
             Ask Journey AI <ArrowUpRight size={16} />
           </button>
         </section>
 
-        <section className="network-panel glass-panel" aria-labelledby="network-status-title">
+        <section
+          className="network-panel glass-panel"
+          aria-labelledby="network-status-title"
+        >
           <div className="network-heading">
             <h2 id="network-status-title">Network status</h2>
             <span className="tiny-live">ALL SYSTEMS ONLINE</span>
