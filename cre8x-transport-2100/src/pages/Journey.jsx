@@ -77,7 +77,6 @@ export default function Journey() {
             <h1>
               {from.name} <ArrowRight aria-label="to" /> {to.name}
             </h1>
-            <p>One seamless journey. Tailored to you.</p>
           </header>
 
           <div className="jm-toolbar">
@@ -109,7 +108,6 @@ export default function Journey() {
           <fieldset className="jm-options">
             <legend>
               <h2>Select your journey</h2>
-              <p>{routes.length} smart routes for your trip</p>
             </legend>
             {routes.map((option) => {
               const isSelected = selected.id === option.id;
