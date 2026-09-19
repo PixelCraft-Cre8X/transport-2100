@@ -1,16 +1,34 @@
-# React + Vite
+# LANKA / 2100
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+LANKA / 2100 is a frontend-only React + Vite concept for Cre8X 3.0 – The Oracle Challenge. It presents a connected Sri Lankan transportation ecosystem across three responsive screens:
 
-Currently, two official plugins are available:
+- **Discover** (`/`) — futuristic hero, journey planner, mobility modes, Journey AI preview, and network pulse.
+- **Your journey** (`/journey`) — six route styles, route comparison, route timeline, Smart Road intelligence, and accessibility badges.
+- **Live tracking** (`/tracking`) — simulated route map, live progress card, transfer timeline, alerts, and network intelligence.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+## Run locally
 
-## React Compiler
+```bash
+npm install
+npm run dev
+```
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+The production check is `npm run build`; linting is `npm run lint`.
 
-## Expanding the ESLint configuration
+## Assets and map setup
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+Hero artwork is loaded from the existing PNG assets in `src/assets/`. To replace it later, add `src/assets/images/hero-colombo-2100-desktop.jpg` and `src/assets/images/hero-colombo-2100-mobile.jpg`; `src/pages/Home.jsx` contains the replacement comments and fallback behavior.
+
+The map surface is deliberately useful without credentials: it renders a polished simulated map and route overlays. To connect Mapbox later, create a `.env` file with:
+
+```bash
+VITE_MAPBOX_ACCESS_TOKEN=your_token_here
+```
+
+`src/components/MapPanel.jsx` is the integration point for a Mapbox instance and route layers. Current location, fares, vehicle positions, and network statuses are realistic dummy data for concept review.
+
+## Structure
+
+- `src/data/` — locations, modes, route options, map geometry, alerts, and journey calculations.
+- `src/components/` — layout, planner, route timeline, map, and reusable UI pieces.
+- `src/pages/` — Home, Journey, and Tracking screens.
