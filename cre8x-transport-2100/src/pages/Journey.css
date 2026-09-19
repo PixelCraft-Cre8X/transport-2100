@@ -17,11 +17,6 @@
   min-width: 0;
 }
 
-.jm-right {
-  display: flex;
-  flex-direction: column;
-}
-
 .jm-page .back-link {
   margin-bottom: 30px;
 }
@@ -243,7 +238,18 @@
   background: rgba(251, 191, 36, 0.11);
 }
 
-.jm-route.eco .jm-route-icon {
+.jm-route.simplest .jm-route-icon {
+  color: #a78bfa;
+  background: rgba(139, 92, 246, 0.14);
+}
+
+.jm-route.comfortable .jm-route-icon {
+  color: #7fb4ff;
+  background: rgba(96, 165, 250, 0.13);
+}
+
+.jm-route.eco .jm-route-icon,
+.jm-route.healthy .jm-route-icon {
   color: #4ade80;
   background: rgba(52, 211, 153, 0.13);
 }
@@ -610,9 +616,6 @@
 /* Journey details */
 
 .jm-details {
-  display: flex;
-  flex: 1;
-  flex-direction: column;
   margin-top: 18px;
   padding: 22px 20px 20px;
   border: 1px solid var(--jm-line);
@@ -627,7 +630,6 @@
 
 .jm-details-body {
   display: grid;
-  flex: 1;
   gap: 22px;
   margin: 20px 0 22px;
 }
@@ -638,14 +640,8 @@
   list-style: none;
 }
 
-.jm-steps {
-  display: flex;
-  flex-direction: column;
-}
-
 .jm-steps li {
   position: relative;
-  flex: 1 1 auto;
   display: grid;
   grid-template-columns: 40px 46px minmax(0, 1fr);
   column-gap: 12px;
@@ -653,7 +649,6 @@
 }
 
 .jm-steps li:last-child {
-  flex: 0 0 auto;
   padding-bottom: 0;
 }
 
@@ -780,7 +775,6 @@
   flex-wrap: wrap;
   align-items: center;
   gap: 16px 28px;
-  margin-top: auto;
   padding-top: 20px;
   border-top: 1px solid var(--jm-line);
 }
@@ -891,6 +885,7 @@
 @media (min-width: 1024px) {
   .jm-layout {
     grid-template-columns: minmax(0, 0.7fr) minmax(0, 1fr);
+    align-items: start;
     gap: 34px;
   }
 
@@ -900,6 +895,14 @@
 
   .jm-details-body {
     grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* Keep the map and details in view while scrolling a long list of routes. */
+@media (min-width: 1024px) and (min-height: 1000px) {
+  .jm-right {
+    position: sticky;
+    top: 88px;
   }
 }
 

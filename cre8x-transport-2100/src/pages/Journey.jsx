@@ -20,8 +20,6 @@ import JourneyMap from "../components/JourneyMap";
 import DestinationArt from "../components/DestinationArt";
 import "./Journey.css";
 
-const FEATURED_STYLES = ["recommended", "fastest", "eco"];
-
 function departureDate() {
   const day = new Date();
   day.setDate(day.getDate() + 1);
@@ -50,9 +48,7 @@ export default function Journey() {
   const [params, setParams] = useSearchParams();
   const journey = readJourney(params);
   const { from, to, walking } = journey;
-  const routes = journey.options.filter((o) => FEATURED_STYLES.includes(o.id));
-  const selected =
-    routes.find((o) => o.id === journey.selected.id) || routes[0];
+  const { options: routes, selected } = journey;
   const steps = withStartTimes(selected.segments);
   const query = journeyQuery(from.name, to.name, selected.id, walking);
   const detailsRef = useRef(null);
@@ -115,7 +111,7 @@ export default function Journey() {
           <fieldset className="jm-options">
             <legend>
               <h2>Select your journey</h2>
-              <p>{routes.length} best routes for your trip</p>
+              <p>{routes.length} smart routes for your trip</p>
             </legend>
             {routes.map((option) => {
               const isSelected = selected.id === option.id;
