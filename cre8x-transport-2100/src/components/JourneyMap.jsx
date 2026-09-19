@@ -4,11 +4,9 @@ import { ArrowUpRight, Layers, Minus, Navigation, Plus } from "lucide-react";
 import { mapTowns } from "../data/network";
 import { buildRouteMap, toPath } from "../utils/routeMap";
 import useElementSize from "../utils/useElementSize";
+import { useMapGestures, useMapView } from "../utils/useMapView";
 import { ModeIcon } from "./UI";
 import "./RouteMap.css";
-
-const ZOOM_LEVELS = [0.7, 0.85, 1, 1.3, 1.7, 2.2];
-const DEFAULT_ZOOM = 2;
 
 function layout(w, h) {
   const narrow = w < 640;
@@ -23,22 +21,30 @@ function layout(w, h) {
 
 export default function JourneyMap({ from, to, segments, fullMapHref, children }) {
   const [ref, { w, h }] = useElementSize();
-  const [zoomIndex, setZoomIndex] = useState(DEFAULT_ZOOM);
   const [showLabels, setShowLabels] = useState(true);
-  const zoom = ZOOM_LEVELS[zoomIndex];
+  const { view, zoomBy, panBy, reset, zoomIn, zoomOut, canZoomIn, canZoomOut } = useMapView();
+  useMapGestures(ref, { onZoom: zoomBy, onPan: panBy });
   const map = useMemo(
     () =>
       w && h
-        ? buildRouteMap({ from, to, segments, w, h, zoom, towns: mapTowns, ...layout(w, h) })
+        ? buildRouteMap({
+            from,
+            to,
+            segments,
+            w,
+            h,
+            zoom: view.zoom,
+            pan: [view.x, view.y],
+            towns: mapTowns,
+            ...layout(w, h),
+          })
         : null,
-    [from, to, segments, w, h, zoom],
+    [from, to, segments, w, h, view],
   );
-  const steps = (delta) =>
-    setZoomIndex((i) => Math.min(ZOOM_LEVELS.length - 1, Math.max(0, i + delta)));
 
   return (
     <div className="jm-map">
-      <div className="jm-map-canvas" ref={ref}>
+      <div className="jm-map-canvas rm-interactive" ref={ref}>
         {map && (
           <svg
             width={w}
@@ -161,23 +167,23 @@ export default function JourneyMap({ from, to, segments, fullMapHref, children }
         <button
           type="button"
           aria-label="Zoom in"
-          disabled={zoomIndex === ZOOM_LEVELS.length - 1}
-          onClick={() => steps(1)}
+          disabled={!canZoomIn}
+          onClick={zoomIn}
         >
           <Plus size={17} />
         </button>
         <button
           type="button"
           aria-label="Zoom out"
-          disabled={zoomIndex === 0}
-          onClick={() => steps(-1)}
+          disabled={!canZoomOut}
+          onClick={zoomOut}
         >
           <Minus size={17} />
         </button>
         <button
           type="button"
           aria-label="Reset map view"
-          onClick={() => setZoomIndex(DEFAULT_ZOOM)}
+          onClick={reset}
         >
           <Navigation size={17} />
         </button>
