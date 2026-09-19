@@ -97,8 +97,13 @@ export default function Home() {
               className="quick-destination-button"
               to={`/journey?${journeyQuery("Maharagama", name)}`}
             >
-              <MapPin size={15} />
-              <span>{name}</span>
+              <span className="quick-destination-icon">
+                <MapPin size={16} />
+              </span>
+              <span className="quick-destination-copy">
+                <strong>{name}</strong>
+                <small>From Maharagama</small>
+              </span>
               <ArrowUpRight size={14} />
             </Link>
           ))}
