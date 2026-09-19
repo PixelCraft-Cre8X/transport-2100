@@ -156,7 +156,7 @@ export default function Tracking() {
               <h2>{arrived ? `Arrived in ${to.name}` : walkingNow ? "On foot" : current.name.split(" · ")[0]}</h2>
               {!arrived && (
                 <p>
-                  <span className="status-dot" /> On schedule · {minutesToNext} min to next stop
+                  <span className="status-dot" /> {current.delayMinutes > 0 ? `Delayed +${current.delayMinutes} min` : "On schedule"} · {minutesToNext} min to next stop
                 </p>
               )}
             </div>

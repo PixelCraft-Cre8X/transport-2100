@@ -228,7 +228,13 @@ export default function Journey() {
                         <strong>{step.name}</strong>
                         <small>{step.minutes} min</small>
                       </span>
-                      <span className="jm-step-status">{step.status}</span>
+                      <span
+                        className={`jm-step-status ${step.delayMinutes > 0 ? "delayed" : ""}`}
+                      >
+                        {step.delayMinutes > 0
+                          ? `Delayed +${step.delayMinutes} min`
+                          : step.status}
+                      </span>
                     </li>
                   );
                 })}
