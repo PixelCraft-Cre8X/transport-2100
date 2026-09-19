@@ -59,7 +59,7 @@ function Navigation({ mobile = false, search, onOpenAI }) {
 
 function Header({ search, pathname, onOpenAI }) {
   return (
-    <header className="site-header glass-nav">
+    <header className={`site-header glass-nav${pathname === "/" ? " home-header" : ""}`}>
       <div className="header-inner">
         <Brand />
         <Navigation search={search} onOpenAI={onOpenAI} />
