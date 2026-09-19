@@ -24,6 +24,7 @@ import {
 } from "../components/UI";
 import RouteTimeline from "../components/RouteTimeline";
 import MapPanel from "../components/MapPanel";
+import GlassSelect from "../components/GlassSelect";
 export default function Journey() {
   const [params, setParams] = useSearchParams();
   const { from, to, walking, options, selected } = readJourney(params);
@@ -51,25 +52,26 @@ export default function Journey() {
         </span>
         <label>
           <Footprints size={16} />
-          <select
+          <GlassSelect
             aria-label="Route walking preference"
+            options={[
+              { label: "Include walking", value: "include" },
+              { label: "Minimize walking", value: "low" },
+            ]}
             value={walking}
-            onChange={(e) =>
+            onChange={(value) =>
               setParams(
                 journeyQuery(
                   from.name,
                   to.name,
-                  selected.id === "healthy" && e.target.value === "low"
+                  selected.id === "healthy" && value === "low"
                     ? "recommended"
                     : selected.id,
-                  e.target.value,
+                  value,
                 ),
               )
             }
-          >
-            <option value="include">Include walking</option>
-            <option value="low">Minimize walking</option>
-          </select>
+          />
         </label>
       </div>
       <div className="journey-layout">
