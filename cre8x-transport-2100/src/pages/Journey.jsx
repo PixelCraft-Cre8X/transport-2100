@@ -17,6 +17,7 @@ import {
 } from "../data/journeys";
 import { ModeIcon } from "../components/UI";
 import JourneyMap from "../components/JourneyMap";
+import Switch from "../components/Switch";
 import DestinationArt from "../components/DestinationArt";
 import "./Journey.css";
 
@@ -88,19 +89,16 @@ export default function Journey() {
             <span className="jm-toggle-row">
               <Footprints size={20} />
               <span id="jm-walking-label">Include walking</span>
-              <button
-                type="button"
-                role="switch"
-                aria-checked={includeWalking}
-                aria-labelledby="jm-walking-label"
-                className="jm-switch"
-                onClick={() =>
+              <Switch
+                checked={includeWalking}
+                labelledBy="jm-walking-label"
+                onChange={(on) =>
                   setParams(
                     journeyQuery(
                       from.name,
                       to.name,
                       selected.id,
-                      includeWalking ? "low" : "include",
+                      on ? "include" : "low",
                     ),
                   )
                 }

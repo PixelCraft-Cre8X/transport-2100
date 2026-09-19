@@ -4,12 +4,12 @@ import {
   ArrowLeft,
   ArrowRight,
   Bell,
-  Check,
   Clock3,
   MapPin,
   Pause,
   Play,
-  Radio,
+  RotateCcw,
+  Share2,
   ShieldCheck,
   Volume2,
   Wind,
@@ -18,206 +18,256 @@ import {
   readJourney,
   journeyQuery,
   formatFare,
-  arrivalTime,
+  clockTime,
+  withStartTimes,
 } from "../data/journeys";
-import { Badge, ModeIcon, SmartRoadPanel } from "../components/UI";
+import { ModeIcon, SmartRoadPanel } from "../components/UI";
 import RouteTimeline from "../components/RouteTimeline";
-import MapPanel from "../components/MapPanel";
-import { smartAlerts } from "../data/network";
+import TrackingMap from "../components/TrackingMap";
+import "./Tracking.css";
+
+const START_PROGRESS = 0.14;
+const TICK_MS = 1000;
+const TICK_STEP = 0.006;
+
+function nextStepText(segments, index, destination) {
+  if (index >= segments.length - 1) return `Welcome to ${destination}`;
+  const rides = segments.slice(index + 1).filter((s) => s.mode !== "walk").length;
+  if (rides > 0) {
+    return `Then ${rides} transfer${rides > 1 ? "s" : ""} to ${destination}`;
+  }
+  return `Then a short walk to ${destination}`;
+}
 
 export default function Tracking() {
   const [params] = useSearchParams();
   const { from, to, selected, walking } = readJourney(params);
-  const [progress, setProgress] = useState(0.34);
+  const segments = withStartTimes(selected.segments);
+  const [progress, setProgress] = useState(START_PROGRESS);
   const [playing, setPlaying] = useState(true);
+  const [voice, setVoice] = useState(false);
+  const [shared, setShared] = useState(false);
+
+  const running = playing && progress < 1;
   useEffect(() => {
-    if (!playing) return undefined;
+    if (!running) return undefined;
     const timer = setInterval(
-      () => setProgress((value) => (value >= 0.86 ? 0.34 : value + 0.01)),
-      1400,
+      () => setProgress((value) => Math.min(1, value + TICK_STEP)),
+      TICK_MS,
     );
     return () => clearInterval(timer);
-  }, [playing]);
-  const currentIndex =
-    progress < 0.34
-      ? 0
-      : progress < 0.58
-        ? Math.min(1, selected.segments.length - 1)
-        : Math.min(2, selected.segments.length - 1);
-  const firstRide =
-    selected.segments.find((s) => s.mode !== "walk") || selected.segments[0];
+  }, [running]);
+
+  const duration = selected.duration;
+  const elapsed = progress * duration;
+  const arrived = progress >= 1;
+  const currentIndex = Math.max(
+    0,
+    segments.findLastIndex((s) => s.start <= elapsed),
+  );
+  const current = segments[currentIndex];
+  const segmentEnd = current.start + current.minutes;
+  const minutesToNext = Math.max(1, Math.ceil(segmentEnd - elapsed));
+  const remaining = Math.max(0, Math.round(duration - elapsed));
+  const arrival = clockTime(duration);
+  const walkingNow = current.mode === "walk";
+  const query = journeyQuery(from.name, to.name, selected.id, walking);
+
+  const restart = () => {
+    setProgress(START_PROGRESS);
+    setPlaying(true);
+  };
+  const toggleVoice = () => {
+    const speech = window.speechSynthesis;
+    setVoice((on) => {
+      if (!on && speech) {
+        speech.cancel();
+        speech.speak(
+          new SpeechSynthesisUtterance(
+            `Next stop, ${current.stop}, in ${minutesToNext} minutes.`,
+          ),
+        );
+      } else if (on && speech) {
+        speech.cancel();
+      }
+      return !on;
+    });
+  };
+  const share = async () => {
+    const data = { title: `My journey to ${to.name}`, url: window.location.href };
+    try {
+      if (navigator.share) await navigator.share(data);
+      else await navigator.clipboard.writeText(data.url);
+      setShared(true);
+      setTimeout(() => setShared(false), 2000);
+    } catch {
+      // Sharing was cancelled or clipboard access was refused; nothing to report.
+    }
+  };
+
   return (
-    <div className="tracking-page page-enter">
-      <div className="tracking-header">
-        <Link
-          className="back-link"
-          to={`/journey?${journeyQuery(from.name, to.name, selected.id, walking)}`}
-        >
+    <div className="inner-page tk-page page-enter">
+      <header className="tk-header">
+        <Link className="back-link" to={`/journey?${query}`}>
           <ArrowLeft size={16} /> Back to route details
         </Link>
-        <div>
-          <p className="eyebrow">
-            <span className="status-dot" /> LIVE JOURNEY
-          </p>
+        <div className="tk-title">
           <h1>On your way to {to.name}.</h1>
-          <p>Tracking your connected journey from {from.name}.</p>
+          <p>Live map of your journey from {from.name}.</p>
         </div>
-        <div className="tracking-actions">
+        <div className="tk-header-actions">
           <button className="icon-button" aria-label="Journey notifications">
             <Bell size={18} />
           </button>
-          <Badge>
-            <Radio size={13} /> Live simulation
-          </Badge>
+          <span className="tk-live">
+            <span className="status-dot" /> {arrived ? "Arrived" : "Live tracking"}
+          </span>
+          <time className="tk-clock">{clockTime(elapsed, { seconds: true })}</time>
         </div>
-      </div>
-      <div className="tracking-layout">
-        <section className="tracking-map-wrap">
-          <MapPanel
-            from={from}
-            to={to}
-            selected={selected}
-            progress={progress}
-          />
-          <div className="map-status-pill glass-card">
-            <span className="status-dot" /> Route updating <span>·</span> last
-            synced just now
-          </div>
-        </section>
-        <aside className="tracking-card glass-panel">
-          <div className="tracking-card-top">
+      </header>
+
+      <div className="tk-layout">
+        <TrackingMap
+          from={from}
+          to={to}
+          segments={segments}
+          progress={progress}
+          currentIndex={currentIndex}
+          minutesToNext={minutesToNext}
+          arrival={arrival}
+          emissionsSaved={selected.emissionsSaved}
+        />
+
+        <aside className="tk-panel" aria-label="Journey progress">
+          <div className="tk-panel-top">
             <span className="eyebrow">YOUR JOURNEY · LIVE</span>
-            <button
-              className="icon-button"
-              aria-label={playing ? "Pause simulation" : "Play simulation"}
-              onClick={() => setPlaying((value) => !value)}
+            <span className="tk-panel-tools">
+              <button
+                className="icon-button"
+                aria-label="Restart simulation"
+                onClick={restart}
+              >
+                <RotateCcw size={16} />
+              </button>
+              <button
+                className="icon-button"
+                aria-label={running ? "Pause simulation" : "Play simulation"}
+                disabled={arrived}
+                onClick={() => setPlaying((value) => !value)}
+              >
+                {running ? <Pause size={16} /> : <Play size={16} />}
+              </button>
+            </span>
+          </div>
+
+          <div className="tk-riding">
+            <span className={`tk-riding-icon ${current.mode}`}>
+              <ModeIcon mode={current.mode} size={30} />
+            </span>
+            <div>
+              <span>{arrived ? "Journey complete" : walkingNow ? "Currently walking" : "Currently riding"}</span>
+              <h2>{arrived ? `Arrived in ${to.name}` : walkingNow ? "On foot" : current.name.split(" · ")[0]}</h2>
+              {!arrived && (
+                <p>
+                  <span className="status-dot" /> On schedule · {minutesToNext} min to next stop
+                </p>
+              )}
+            </div>
+            <Link className="tk-details-link" to={`/journey?${query}`}>
+              View details <ArrowRight size={16} />
+            </Link>
+          </div>
+
+          <div className="tk-next">
+            <span className="tk-next-icon">
+              <MapPin size={22} />
+            </span>
+            <div>
+              <span>Next stop</span>
+              <strong>{arrived ? to.name : current.stop}</strong>
+              <small>{nextStepText(segments, currentIndex, to.name)}</small>
+            </div>
+            <time>{arrived ? arrival : clockTime(segmentEnd)}</time>
+          </div>
+
+          <dl className="tk-stats">
+            <div>
+              <dt>Arrives in</dt>
+              <dd>
+                {remaining} <small>min</small>
+              </dd>
+            </div>
+            <div>
+              <dt>ETA</dt>
+              <dd>{arrival}</dd>
+            </div>
+            <div>
+              <dt>Fare</dt>
+              <dd>{formatFare(selected.cost)}</dd>
+            </div>
+          </dl>
+
+          <div className="tk-progress">
+            <div>
+              <span>Journey progress</span>
+              <span>{Math.round(progress * 100)}%</span>
+            </div>
+            <div
+              className="tk-track"
+              role="progressbar"
+              aria-label="Journey progress"
+              aria-valuemin={0}
+              aria-valuemax={100}
+              aria-valuenow={Math.round(progress * 100)}
             >
-              {playing ? <Pause size={16} /> : <Play size={16} />}
+              <span style={{ width: `${progress * 100}%` }} />
+              <i style={{ left: `${progress * 100}%` }} />
+            </div>
+          </div>
+
+          <RouteTimeline segments={selected.segments} currentIndex={arrived ? segments.length : currentIndex} />
+
+          <div className="tk-actions">
+            <button
+              type="button"
+              className="tk-action"
+              aria-pressed={voice}
+              onClick={toggleVoice}
+            >
+              <Volume2 size={18} /> {voice ? "Voice on" : "Voice guidance"}
             </button>
-          </div>
-          <div className="tracking-hero">
-            <div className="vehicle-icon">
-              <ModeIcon mode={firstRide.mode} size={27} />
-            </div>
-            <div>
-              <span className="tiny-label">CURRENTLY RIDING</span>
-              <h2>{firstRide.name.split(" · ")[0]}</h2>
-              <p>
-                <span className="status-dot" /> On schedule · 4 min to next stop
-              </p>
-            </div>
-          </div>
-          <div className="tracking-destination">
-            <span>
-              <MapPin size={16} /> NEXT STOP
-            </span>
-            <strong>{firstRide.stop}</strong>
-            <span>
-              Then{" "}
-              {selected.transfers
-                ? `${selected.transfers} transfer${selected.transfers > 1 ? "s" : ""}`
-                : "straight through"}{" "}
-              to {to.name}
-            </span>
-          </div>
-          <div className="eta-row">
-            <div>
-              <span>ARRIVES IN</span>
-              <strong>
-                {Math.max(8, Math.round(selected.duration * (1 - progress)))}{" "}
-                <small>min</small>
-              </strong>
-            </div>
-            <div>
-              <span>ETA</span>
-              <strong>
-                {arrivalTime(
-                  Math.max(8, Math.round(selected.duration * (1 - progress))),
-                )}
-              </strong>
-            </div>
-            <div>
-              <span>FARE</span>
-              <strong>{formatFare(selected.cost)}</strong>
-            </div>
-          </div>
-          <div className="progress-label">
-            <span>Journey progress</span>
-            <span>{Math.round(progress * 100)}%</span>
-          </div>
-          <div className="journey-progress">
-            <span style={{ width: `${progress * 100}%` }} />
-            <i style={{ left: `${progress * 100}%` }} />
-          </div>
-          <RouteTimeline
-            segments={selected.segments}
-            currentIndex={currentIndex}
-          />
-          <div className="tracking-actions-row">
-            <button className="button secondary">
-              <Volume2 size={16} /> Voice guidance
-            </button>
-            <button className="button secondary">
-              <ShareIcon /> Share trip
+            <button type="button" className="tk-action" onClick={share}>
+              <Share2 size={18} /> {shared ? "Link copied" : "Share trip"}
             </button>
           </div>
         </aside>
       </div>
-      <section className="tracking-lower">
-        <div>
-          <div className="tracking-section-title">
-            <span className="eyebrow">NETWORK INTELLIGENCE</span>
-            <h2>Everything is moving with you.</h2>
+      <section className="tk-lower" aria-label="Smart road intelligence">
+        <SmartRoadPanel />
+        <div className="system-stats">
+          <div>
+            <ShieldCheck size={20} />
+            <span>
+              <strong>98%</strong>
+              <small>Route safety</small>
+            </span>
           </div>
-          <div className="alert-grid">
-            {smartAlerts.map((alert) => (
-              <div className="smart-alert glass-card" key={alert.mode}>
-                <span className={`alert-icon ${alert.mode}`}>
-                  <ModeIcon mode={alert.mode} size={18} />
-                </span>
-                <div>
-                  <strong>{alert.title}</strong>
-                  <p>{alert.description}</p>
-                </div>
-                <Check size={15} />
-              </div>
-            ))}
+          <div>
+            <Wind size={20} />
+            <span>
+              <strong>Clean air</strong>
+              <small>Low emissions corridor</small>
+            </span>
           </div>
-        </div>
-        <div className="tracking-side-info">
-          <SmartRoadPanel />
-          <div className="system-stats glass-card">
-            <div>
-              <ShieldCheck size={18} />
-              <span>
-                <strong>98%</strong>
-                <small>Route safety</small>
-              </span>
-            </div>
-            <div>
-              <Wind size={18} />
-              <span>
-                <strong>Clean air</strong>
-                <small>Low emissions corridor</small>
-              </span>
-            </div>
-            <div>
-              <Clock3 size={18} />
-              <span>
-                <strong>On time</strong>
-                <small>All connections</small>
-              </span>
-            </div>
+          <div>
+            <Clock3 size={20} />
+            <span>
+              <strong>On time</strong>
+              <small>All connections</small>
+            </span>
           </div>
         </div>
       </section>
     </div>
-  );
-}
-function ShareIcon() {
-  return (
-    <span className="share-icon">
-      <ArrowRight size={14} />
-    </span>
   );
 }
