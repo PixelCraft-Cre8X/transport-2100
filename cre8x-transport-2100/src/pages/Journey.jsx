@@ -1,207 +1,270 @@
+import { useRef, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import {
   ArrowLeft,
   ArrowRight,
-  Clock3,
-  Footprints,
-  Accessibility,
-  Volume2,
-  HeartHandshake,
-  Check,
   ArrowUpRight,
+  CalendarDays,
+  Footprints,
+  Heart,
+  MapPin,
 } from "lucide-react";
 import {
   readJourney,
   journeyQuery,
   formatFare,
-  arrivalTime,
+  withStartTimes,
 } from "../data/journeys";
-import {
-  Badge,
-  ModeIcon,
-  SectionHeader,
-  SmartRoadPanel,
-} from "../components/UI";
-import RouteTimeline from "../components/RouteTimeline";
-import MapPanel from "../components/MapPanel";
-import GlassSelect from "../components/GlassSelect";
+import { ModeIcon } from "../components/UI";
+import JourneyMap from "../components/JourneyMap";
+import DestinationArt from "../components/DestinationArt";
+import "./Journey.css";
+
+function departureDate() {
+  const day = new Date();
+  day.setDate(day.getDate() + 1);
+  const weekday = day.toLocaleDateString("en-US", { weekday: "short" });
+  const month = day.toLocaleDateString("en-US", { month: "short" });
+  return `${weekday}, ${day.getDate()} ${month}`;
+}
+
+function Metric({ value, unit, label }) {
+  return (
+    <span className="jm-metric">
+      <strong>
+        {value}
+        {unit && <small> {unit}</small>}
+      </strong>
+      <small>{label}</small>
+    </span>
+  );
+}
+
+function transferLabel(count) {
+  return count === 1 ? "Transfer" : "Transfers";
+}
+
 export default function Journey() {
   const [params, setParams] = useSearchParams();
-  const { from, to, walking, options, selected } = readJourney(params);
+  const journey = readJourney(params);
+  const { from, to, walking } = journey;
+  const { options: routes, selected } = journey;
+  const steps = withStartTimes(selected.segments);
   const query = journeyQuery(from.name, to.name, selected.id, walking);
+  const detailsRef = useRef(null);
+  const [saved, setSaved] = useState(false);
+
+  const choose = (style) =>
+    setParams(journeyQuery(from.name, to.name, style, walking));
+  const showDetails = (style) => {
+    choose(style);
+    if (window.matchMedia("(max-width: 1023px)").matches) {
+      detailsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  };
+  const includeWalking = walking === "include";
+
   return (
-    <div className="inner-page page-enter">
-      <Link className="back-link" to="/">
-        <ArrowLeft size={16} /> Back to planner
-      </Link>
-      <div className="page-heading">
-        <div>
-          <p className="eyebrow">YOUR ISLAND, YOUR WAY</p>
-          <h1>
-            {from.name} <ArrowRight /> {to.name}
-          </h1>
-          <p>One seamless journey. Choose what matters to you.</p>
-        </div>
-        <Badge>
-          <span className="status-dot" /> Network connected
-        </Badge>
-      </div>
-      <div className="journey-toolbar">
-        <span>
-          <Clock3 size={16} /> Depart at 09:00 <Badge>Demo journey</Badge>
-        </span>
-        <label>
-          <Footprints size={16} />
-          <GlassSelect
-            aria-label="Route walking preference"
-            options={[
-              { label: "Include walking", value: "include" },
-              { label: "Minimize walking", value: "low" },
-            ]}
-            value={walking}
-            onChange={(value) =>
-              setParams(
-                journeyQuery(
-                  from.name,
-                  to.name,
-                  selected.id === "healthy" && value === "low"
-                    ? "recommended"
-                    : selected.id,
-                  value,
-                ),
-              )
-            }
-          />
-        </label>
-      </div>
-      <div className="journey-layout">
-        <section className="route-options">
-          <SectionHeader title="Find your kind of journey">
-            <span className="muted">{options.length} smart routes</span>
-          </SectionHeader>
-          <div className="options-list">
-            {options.map((option) => (
+    <div className="inner-page jm-page page-enter">
+      <div className="jm-layout">
+        <div className="jm-left">
+          <Link className="back-link" to="/">
+            <ArrowLeft size={16} /> Back to planner
+          </Link>
+          <header className="jm-heading">
+            <p className="eyebrow">YOUR ISLAND, YOUR WAY</p>
+            <h1>
+              {from.name} <ArrowRight aria-label="to" /> {to.name}
+            </h1>
+            <p>One seamless journey. Tailored to you.</p>
+          </header>
+
+          <div className="jm-toolbar">
+            <span>
+              <CalendarDays size={20} />
+              Depart at 09:00 <i aria-hidden="true">·</i>
+              <span className="jm-date">{departureDate()}</span>
+            </span>
+            <span className="jm-toggle-row">
+              <Footprints size={20} />
+              <span id="jm-walking-label">Include walking</span>
               <button
-                key={option.id}
-                className={`route-option glass-card ${selected.id === option.id ? "selected" : ""}`}
-                aria-pressed={selected.id === option.id}
+                type="button"
+                role="switch"
+                aria-checked={includeWalking}
+                aria-labelledby="jm-walking-label"
+                className="jm-switch"
                 onClick={() =>
                   setParams(
-                    journeyQuery(from.name, to.name, option.id, walking),
+                    journeyQuery(
+                      from.name,
+                      to.name,
+                      selected.id,
+                      includeWalking ? "low" : "include",
+                    ),
                   )
                 }
-              >
-                <div className="option-top">
-                  <span className={`option-icon ${option.id}`}>
-                    <ModeIcon mode={option.icon} />
-                  </span>
-                  <span>
-                    <strong>{option.label}</strong>
-                    <small>{option.description}</small>
-                  </span>
-                  <span className="selection-dot">
-                    {selected.id === option.id && <Check size={12} />}
-                  </span>
-                </div>
-                <div className="option-metrics">
-                  <strong>
-                    {option.duration}
-                    <small> min</small>
-                  </strong>
-                  <span>{formatFare(option.cost)}</span>
-                  <span>
-                    <Footprints size={13} /> {option.walk} min walk
-                  </span>
-                </div>
-                <div className="option-bottom">
-                  <span className="mode-chain">
-                    {option.segments.map((s, i) => (
-                      <span key={i}>
-                        <ModeIcon mode={s.mode} size={16} />
-                        {i < option.segments.length - 1 && <span>›</span>}
+              />
+            </span>
+          </div>
+
+          <fieldset className="jm-options">
+            <legend>
+              <h2>Select your journey</h2>
+              <p>{routes.length} smart routes for your trip</p>
+            </legend>
+            {routes.map((option) => {
+              const isSelected = selected.id === option.id;
+              const chain = option.segments.filter(
+                (s, i, all) => !(s.mode === "walk" && i === all.length - 1),
+              );
+              return (
+                <article
+                  key={option.id}
+                  className={`jm-route ${option.id} ${isSelected ? "selected" : ""}`}
+                >
+                  <label className="jm-route-pick">
+                    <input
+                      type="radio"
+                      name="journey-style"
+                      value={option.id}
+                      checked={isSelected}
+                      onChange={() => choose(option.id)}
+                    />
+                    <span className="jm-route-head">
+                      <span className="jm-route-icon">
+                        <ModeIcon mode={option.icon} size={24} />
                       </span>
-                    ))}
-                  </span>
-                  <span>{option.comfort} comfort</span>
-                  <Badge
-                    tone={
-                      option.id === "eco" || option.id === "healthy"
-                        ? "green"
-                        : ""
-                    }
-                  >
-                    {option.tag}
-                  </Badge>
+                      <span className="jm-route-title">
+                        <strong>{option.label}</strong>
+                        <small>{option.description}</small>
+                      </span>
+                      {option.highlight && (
+                        <span className="jm-highlight">{option.highlight}</span>
+                      )}
+                      <span className="jm-radio" aria-hidden="true" />
+                    </span>
+                    <span className="jm-route-metrics">
+                      <Metric
+                        value={option.duration}
+                        unit="min"
+                        label="Total travel time"
+                      />
+                      <Metric
+                        value={formatFare(option.cost)}
+                        label="Estimated fare"
+                      />
+                      <Metric
+                        value={option.transfers}
+                        label={transferLabel(option.transfers)}
+                      />
+                    </span>
+                  </label>
+                  <div className="jm-route-foot">
+                    <span className="jm-chain" aria-label="Modes of travel">
+                      {chain.map((s, i) => (
+                        <span key={`${s.mode}-${i}`}>
+                          {i > 0 && <ArrowRight size={14} aria-hidden="true" />}
+                          <ModeIcon mode={s.mode} size={22} />
+                        </span>
+                      ))}
+                    </span>
+                    <button
+                      type="button"
+                      className="jm-link"
+                      onClick={() => showDetails(option.id)}
+                    >
+                      View details <ArrowRight size={16} />
+                    </button>
+                  </div>
+                </article>
+              );
+            })}
+          </fieldset>
+        </div>
+
+        <div className="jm-right">
+          <JourneyMap
+            from={from}
+            to={to}
+            segments={steps}
+            fullMapHref={`/tracking?${query}`}
+          >
+            <div className="jm-stats">
+              <Metric
+                value={selected.duration}
+                unit="min"
+                label="Total travel time"
+              />
+              <Metric value={formatFare(selected.cost)} label="Estimated fare" />
+              <Metric
+                value={selected.transfers}
+                label={transferLabel(selected.transfers)}
+              />
+            </div>
+          </JourneyMap>
+
+          <section
+            className="jm-details"
+            id="journey-details"
+            ref={detailsRef}
+            aria-label="Journey details"
+          >
+            <h2>Journey details</h2>
+            <div className="jm-details-body">
+              <ol className="jm-steps">
+                {steps.map((step, i) => {
+                  const last = i === steps.length - 1;
+                  return (
+                    <li key={`${step.mode}-${i}`} className={step.mode}>
+                      <span className="jm-step-icon">
+                        {last ? (
+                          <MapPin size={20} />
+                        ) : (
+                          <ModeIcon mode={step.mode} size={20} />
+                        )}
+                      </span>
+                      <span className="jm-step-time">
+                        {step.time}
+                        <i aria-hidden="true" />
+                      </span>
+                      <span className="jm-step-name">
+                        <strong>{step.name}</strong>
+                        <small>{step.minutes} min</small>
+                      </span>
+                      <span className="jm-step-status">{step.status}</span>
+                    </li>
+                  );
+                })}
+              </ol>
+              <aside className="jm-destination">
+                <DestinationArt landmark={to.landmark} />
+                <div>
+                  <span>Arrive at</span>
+                  <strong>{to.name}</strong>
+                  <p>{to.tagline}</p>
+                  <Link to="/" className="jm-outline-button">
+                    View destination <ArrowUpRight size={16} />
+                  </Link>
                 </div>
+              </aside>
+            </div>
+            <div className="jm-actions">
+              <Link className="jm-start" to={`/tracking?${query}`}>
+                Start journey <ArrowRight size={20} />
+              </Link>
+              <button
+                type="button"
+                className={`jm-save ${saved ? "saved" : ""}`}
+                aria-pressed={saved}
+                onClick={() => setSaved((value) => !value)}
+              >
+                <Heart size={22} fill={saved ? "currentColor" : "none"} />
+                {saved ? "Journey saved" : "Save journey"}
               </button>
-            ))}
-          </div>
-        </section>
-        <section className="journey-detail glass-panel" aria-label="Selected route details">
-          <div className="detail-heading">
-            <span className="eyebrow">YOUR JOURNEY AT A GLANCE</span>
-            <Badge>{selected.label}</Badge>
-          </div>
-          <div className="summary-metrics">
-            <div>
-              <strong>
-                {selected.duration}
-                <small> min</small>
-              </strong>
-              <span>Total travel time</span>
             </div>
-            <div>
-              <strong>{arrivalTime(selected.duration)}</strong>
-              <span>Estimated arrival</span>
-            </div>
-            <div>
-              <strong>{formatFare(selected.cost)}</strong>
-              <span>Estimated fare</span>
-            </div>
-            <div>
-              <strong>{selected.transfers}</strong>
-              <span>Transfers</span>
-            </div>
-          </div>
-          <div className="preview-map">
-            <MapPanel from={from} to={to} selected={selected} compact />
-            <Link to={`/tracking?${query}`} className="map-preview-link glass-card">
-              Explore route <ArrowUpRight size={15} />
-            </Link>
-          </div>
-          <div className="timeline-heading">
-            <h2>Every step, connected.</h2>
-            <span>
-              {from.name} → {to.name}
-            </span>
-          </div>
-          <RouteTimeline segments={selected.segments} />
-          <SmartRoadPanel />
-          <div className="accessibility-badges">
-            {selected.walk <= 4 && (
-              <span>
-                <Footprints size={14} /> Low walking
-              </span>
-            )}
-            <span>
-              <Accessibility size={14} /> Step-free
-            </span>
-            <span>
-              <Volume2 size={14} /> Voice-ready
-            </span>
-            {selected.walk <= 4 && (
-              <span>
-                <HeartHandshake size={14} /> Elderly friendly
-              </span>
-            )}
-          </div>
-          <Link className="button primary" to={`/tracking?${query}`}>
-            Start tracking <ArrowRight size={18} />
-          </Link>
-          <p className="detail-footnote">
-            Simulated services and fares for Sri Lanka, 2100.
-          </p>
-        </section>
+          </section>
+        </div>
       </div>
     </div>
   );

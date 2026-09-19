@@ -1,4 +1,4 @@
-import { comparisonTags, locations } from "./network";
+import { coastalCorridor, comparisonTags, locations } from "./network";
 
 export function readJourney(params) {
   const from =
@@ -105,7 +105,36 @@ export function mapRoutePoints(from, to, segments) {
   });
 }
 export const formatFare = (cost) => `LKR ${cost.toLocaleString("en-US")}`;
-export function arrivalTime(minutes) {
-  const total = 9 * 60 + minutes;
+const DEPARTURE_MINUTES = 9 * 60;
+// Wall-clock time (HH:MM) `minutes` after the 09:00 demo departure.
+export function clockTime(minutes = 0) {
+  const total = DEPARTURE_MINUTES + minutes;
   return `${String(Math.floor(total / 60) % 24).padStart(2, "0")}:${String(total % 60).padStart(2, "0")}`;
+}
+export const arrivalTime = clockTime;
+// Segments annotated with the minute offset (from departure) at which each begins.
+export function withStartTimes(segments) {
+  let elapsed = 0;
+  return segments.map((segment) => {
+    const start = elapsed;
+    elapsed += segment.minutes;
+    return { ...segment, start, time: clockTime(start) };
+  });
+}
+// Illustrative path for the journey map: rides between two south-west coast
+// hubs follow the coastal corridor, everything else is a direct line.
+export function routeWaypoints(from, to, { direct = false } = {}) {
+  const ends = [from.coordinates, to.coordinates];
+  const nearCorridor = ends.every(([lon, lat]) => lon < 80.3 && lat < 7.3);
+  if (direct || !nearCorridor) return ends;
+  const [fromLat, toLat] = [from.coordinates[1], to.coordinates[1]];
+  const direction = Math.sign(toLat - fromLat);
+  const between = coastalCorridor
+    .filter(({ coordinates: [, lat] }) => {
+      const clearOfEnds =
+        Math.abs(lat - fromLat) > 0.06 && Math.abs(lat - toLat) > 0.06;
+      return clearOfEnds && (lat - fromLat) * (toLat - lat) > 0;
+    })
+    .sort((a, b) => direction * (a.coordinates[1] - b.coordinates[1]));
+  return [from.coordinates, ...between.map((t) => t.coordinates), to.coordinates];
 }
