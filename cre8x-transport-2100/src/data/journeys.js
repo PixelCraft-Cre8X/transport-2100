@@ -22,6 +22,19 @@ export function journeyQuery(
 ) {
   return new URLSearchParams({ from, to, style, walking }).toString();
 }
+
+function demoDelay(from, to, routeId, segmentIndex) {
+  // Keep demo delays consistent across AI, journey and tracking recalculations.
+  const key = `${from.name}|${to.name}|${routeId}|${segmentIndex}`;
+  let hash = 0;
+  for (const character of key) {
+    hash = (Math.imul(hash, 31) + character.charCodeAt(0)) >>> 0;
+  }
+  const bucket = hash % 40;
+  // About 20% of rides have a simulated delay of 1–8 minutes.
+  return bucket < 8 ? bucket + 1 : 0;
+}
+
 export function buildRoutes(from, to, walking) {
   const distance = Math.hypot(
     (from.coordinates[0] - to.coordinates[0]) * 110,
@@ -76,9 +89,7 @@ export function buildRoutes(from, to, walking) {
           delayMinutes:
             mode === "walk"
               ? 0
-              : Math.random() < 0.8
-                ? 0
-                : Math.floor(Math.random() * 8) + 1,
+              : demoDelay(from, to, template.id, index),
         };
       });
       return {
