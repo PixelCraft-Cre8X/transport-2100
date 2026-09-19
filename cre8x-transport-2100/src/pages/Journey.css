@@ -898,11 +898,11 @@
   }
 }
 
-/* Keep the map and details in view while scrolling a long list of routes. */
-@media (min-width: 1024px) and (min-height: 1000px) {
+/* Let the shorter column catch up and finish together with the longer one. */
+@media (min-width: 1024px) {
   .jm-right {
     position: sticky;
-    top: 88px;
+    top: 24px;
   }
 }
 
