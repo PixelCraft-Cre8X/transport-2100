@@ -1,12 +1,100 @@
 export const locations = [
-  { name: "Maharagama", coordinates: [79.9249, 6.848] },
-  { name: "Galle", coordinates: [80.217, 6.032] },
-  { name: "Colombo Fort", coordinates: [79.85, 6.934] },
-  { name: "Kandy", coordinates: [80.633, 7.291] },
-  { name: "Airport", coordinates: [79.885, 7.18] },
-  { name: "Port City", coordinates: [79.837, 6.941] },
-  { name: "Makumbura", coordinates: [79.968, 6.839] },
+  {
+    name: "Maharagama",
+    coordinates: [79.9249, 6.848],
+    tagline: "A busy junction town on the road to the southern coast.",
+  },
+  {
+    name: "Galle",
+    coordinates: [80.217, 6.032],
+    tagline: "Explore a city where heritage meets tomorrow.",
+    landmark: "lighthouse",
+  },
+  {
+    name: "Colombo Fort",
+    coordinates: [79.85, 6.934],
+    tagline: "Where the old harbour district meets the new skyline.",
+  },
+  {
+    name: "Kandy",
+    coordinates: [80.633, 7.291],
+    tagline: "The hill capital, wrapped in mist and living tradition.",
+  },
+  {
+    name: "Airport",
+    coordinates: [79.885, 7.18],
+    tagline: "Your gateway to the island, one hop from every hub.",
+  },
+  {
+    name: "Port City",
+    coordinates: [79.837, 6.941],
+    tagline: "A city built on the sea, designed for the next century.",
+  },
+  {
+    name: "Makumbura",
+    coordinates: [79.968, 6.839],
+    tagline: "The SkyRail interchange where the south begins.",
+  },
+  {
+    name: "Kalutara",
+    coordinates: [79.96, 6.585],
+    tagline: "River, beach and temple on the doorstep of the south.",
+  },
+];
+
+// Towns along the south-west coast, north to south. Used to bend illustrated
+// routes along the coastal SkyRail corridor and to label the journey map.
+export const coastalCorridor = [
+  { name: "Colombo", coordinates: [79.86, 6.93] },
+  { name: "Moratuwa", coordinates: [79.88, 6.77] },
+  { name: "Panadura", coordinates: [79.9, 6.71] },
   { name: "Kalutara", coordinates: [79.96, 6.585] },
+  { name: "Beruwala", coordinates: [79.98, 6.48] },
+  { name: "Bentota", coordinates: [79.995, 6.42] },
+  { name: "Ambalangoda", coordinates: [80.05, 6.24] },
+  { name: "Hikkaduwa", coordinates: [80.1, 6.14] },
+  { name: "Galle", coordinates: [80.217, 6.032] },
+];
+
+// Places labelled on the journey map when they fall inside the visible frame.
+export const mapTowns = [
+  ...coastalCorridor.filter((t) =>
+    ["Colombo", "Kalutara", "Bentota", "Hikkaduwa"].includes(t.name),
+  ),
+  { name: "Negombo", coordinates: [79.84, 7.21] },
+  { name: "Kandy", coordinates: [80.633, 7.291] },
+];
+
+// Simplified island outline (lon, lat), clockwise from the southern tip.
+export const islandOutline = [
+  [80.59, 5.92],
+  [80.43, 5.94],
+  [80.25, 5.99],
+  [80.19, 6.01],
+  [80.07, 6.12],
+  [80.02, 6.23],
+  [79.96, 6.41],
+  [79.94, 6.48],
+  [79.93, 6.58],
+  [79.87, 6.71],
+  [79.85, 6.77],
+  [79.835, 6.83],
+  [79.82, 6.93],
+  [79.82, 7.21],
+  [79.8, 7.58],
+  [79.83, 8.03],
+  [79.72, 8.23],
+  [79.91, 8.98],
+  [79.72, 9.09],
+  [80.0, 9.67],
+  [80.25, 9.83],
+  [80.82, 9.27],
+  [81.23, 8.57],
+  [81.7, 7.72],
+  [81.83, 6.84],
+  [81.31, 6.2],
+  [81.12, 6.12],
+  [80.8, 6.02],
 ];
 
 export const transportModes = [
@@ -64,8 +152,9 @@ export const comparisonTags = [
   {
     id: "recommended",
     label: "Recommended",
-    icon: "sparkles",
-    description: "The best of every journey",
+    icon: "orbit",
+    highlight: "Best choice",
+    description: "Best balance of time, comfort and cost",
     comfort: "High",
     tag: "Best balance",
     cost: 480,
@@ -77,7 +166,7 @@ export const comparisonTags = [
     id: "fastest",
     label: "Fastest",
     icon: "zap",
-    description: "More time for what matters",
+    description: "Get there in the shortest time",
     comfort: "Premium",
     tag: "Time saver",
     cost: 2450,
@@ -113,7 +202,7 @@ export const comparisonTags = [
     id: "eco",
     label: "Eco / Cost-saving",
     icon: "leaf",
-    description: "Lighter on the planet and your wallet",
+    description: "Lower cost, lower emissions",
     comfort: "Standard",
     tag: "Lowest fare",
     cost: 280,

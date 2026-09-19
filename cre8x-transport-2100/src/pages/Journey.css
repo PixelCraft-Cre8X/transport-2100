@@ -1,0 +1,955 @@
+/* My Journey page. Mobile first; two columns from 1024px. */
+
+.jm-page {
+  --jm-line: rgba(148, 163, 184, 0.16);
+  --jm-card: rgba(11, 26, 44, 0.72);
+  --jm-muted: #8fa3b7;
+  --jm-cyan: #5ddcf7;
+}
+
+.jm-layout {
+  display: grid;
+  gap: 28px;
+}
+
+.jm-left,
+.jm-right {
+  min-width: 0;
+}
+
+.jm-page .back-link {
+  margin-bottom: 30px;
+}
+
+/* Heading */
+
+.jm-heading .eyebrow {
+  font-size: 0.75rem;
+  letter-spacing: 0.22em;
+}
+
+.jm-heading h1 {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.3em 0.35em;
+  margin: 14px 0 10px;
+  font-size: clamp(2rem, 9vw, 2.6rem);
+  font-weight: 700;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+}
+
+.jm-heading h1 svg {
+  width: 0.55em;
+  height: 0.55em;
+  color: var(--jm-cyan);
+}
+
+.jm-heading p:last-child {
+  color: #a4b4c4;
+  font-size: var(--text-md);
+}
+
+/* Toolbar */
+
+.jm-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px 24px;
+  margin: 26px 0 30px;
+  padding: 14px 20px;
+  border: 1px solid var(--jm-line);
+  border-radius: 14px;
+  background: rgba(11, 26, 44, 0.6);
+  color: #d3deea;
+  font-size: 0.875rem;
+}
+
+.jm-toolbar > span {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.jm-toolbar svg {
+  color: #b5c5d5;
+}
+
+.jm-toolbar i {
+  margin: 0 -2px;
+  color: var(--jm-muted);
+  font-style: normal;
+}
+
+.jm-date {
+  color: var(--jm-muted);
+}
+
+.jm-switch {
+  position: relative;
+  width: 46px;
+  height: 26px;
+  margin-left: 6px;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  background: #24384d;
+  transition: background 0.2s;
+}
+
+.jm-switch::after {
+  content: "";
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #f8fafc;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.35);
+  transition: transform 0.2s;
+}
+
+.jm-switch[aria-checked="true"] {
+  background: #22d3ee;
+}
+
+.jm-switch[aria-checked="true"]::after {
+  transform: translateX(20px);
+}
+
+.jm-switch:focus-visible,
+.jm-link:focus-visible,
+.jm-controls button:focus-visible,
+.jm-full-map:focus-visible,
+.jm-start:focus-visible,
+.jm-save:focus-visible,
+.jm-outline-button:focus-visible {
+  outline: 2px solid var(--cyan);
+  outline-offset: 3px;
+}
+
+/* Route options */
+
+.jm-options {
+  display: grid;
+  gap: 14px;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.jm-options legend {
+  display: block;
+  width: 100%;
+  margin-bottom: 14px;
+  padding: 0;
+}
+
+.jm-options legend h2 {
+  font-size: var(--text-lg);
+  font-weight: 700;
+}
+
+.jm-options legend p {
+  margin-top: 6px;
+  color: var(--jm-muted);
+  font-size: var(--text-sm);
+}
+
+.jm-route {
+  position: relative;
+  padding: 16px 18px 12px;
+  border: 1px solid var(--jm-line);
+  border-radius: 16px;
+  background: var(--jm-card);
+  transition:
+    border-color 0.2s,
+    box-shadow 0.2s,
+    background 0.2s;
+}
+
+.jm-route:hover {
+  border-color: rgba(148, 163, 184, 0.34);
+}
+
+.jm-route.selected {
+  border-color: rgba(34, 211, 238, 0.85);
+  background: linear-gradient(
+    105deg,
+    rgba(34, 211, 238, 0.14),
+    rgba(11, 26, 44, 0.8) 62%
+  );
+  box-shadow:
+    0 0 0 1px rgba(34, 211, 238, 0.2),
+    0 0 30px rgba(34, 211, 238, 0.14);
+}
+
+.jm-route:has(input:focus-visible) {
+  outline: 2px solid var(--cyan);
+  outline-offset: 3px;
+}
+
+.jm-route-pick {
+  display: grid;
+  gap: 16px;
+  cursor: pointer;
+}
+
+/* Stretch the label over the card so the whole card selects the route. */
+.jm-route-pick::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+}
+
+.jm-route-pick input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.jm-route-head {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 12px;
+}
+
+.jm-route-icon {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  color: var(--jm-cyan);
+  background: rgba(34, 211, 238, 0.12);
+}
+
+.jm-route.fastest .jm-route-icon {
+  color: #fbbf24;
+  background: rgba(251, 191, 36, 0.11);
+}
+
+.jm-route.simplest .jm-route-icon {
+  color: #a78bfa;
+  background: rgba(139, 92, 246, 0.14);
+}
+
+.jm-route.comfortable .jm-route-icon {
+  color: #7fb4ff;
+  background: rgba(96, 165, 250, 0.13);
+}
+
+.jm-route.eco .jm-route-icon,
+.jm-route.healthy .jm-route-icon {
+  color: #4ade80;
+  background: rgba(52, 211, 153, 0.13);
+}
+
+.jm-route-title {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.jm-route-title strong {
+  font-size: var(--text-md);
+  font-weight: 600;
+}
+
+.jm-route-title small {
+  color: #9db0c2;
+  font-size: var(--text-xs);
+}
+
+.jm-highlight {
+  padding: 5px 12px;
+  border: 1px solid rgba(52, 211, 153, 0.4);
+  border-radius: 9px;
+  background: rgba(52, 211, 153, 0.12);
+  color: #6ee7b7;
+  font-size: var(--text-xs);
+  white-space: nowrap;
+}
+
+.jm-radio {
+  display: block;
+  width: 24px;
+  height: 24px;
+  border: 1.5px solid #566f88;
+  border-radius: 50%;
+  transition:
+    border-color 0.2s,
+    box-shadow 0.2s;
+}
+
+.selected .jm-radio {
+  border-color: var(--jm-cyan);
+  background: radial-gradient(circle, var(--jm-cyan) 0 34%, transparent 38%);
+  box-shadow: 0 0 12px rgba(34, 211, 238, 0.45);
+}
+
+.jm-route-metrics {
+  display: grid;
+  grid-template-columns: 1fr 1.1fr 0.8fr;
+  gap: 12px;
+  padding-left: 12px;
+}
+
+.jm-metric {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.jm-metric strong {
+  font-size: 1.25rem;
+  font-weight: 700;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+.jm-metric strong small {
+  color: #d3deea;
+  font-size: var(--text-sm);
+  font-weight: 400;
+}
+
+.jm-metric > small {
+  color: var(--jm-muted);
+  font-size: var(--text-xs);
+}
+
+.jm-route-foot {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 12px;
+  padding-left: 12px;
+  pointer-events: none;
+}
+
+.jm-chain {
+  display: flex;
+  align-items: center;
+  color: #d3deea;
+}
+
+.jm-chain > span {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.jm-chain > span:not(:first-child) {
+  margin-left: 12px;
+}
+
+.jm-chain svg[width="14"] {
+  color: var(--jm-muted);
+}
+
+.jm-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 0;
+  border: 0;
+  background: none;
+  color: var(--jm-cyan);
+  font-size: var(--text-sm);
+  pointer-events: auto;
+}
+
+.jm-link:hover {
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+
+/* Map */
+
+.jm-map {
+  position: relative;
+  height: 380px;
+  overflow: hidden;
+  border: 1px solid rgba(56, 130, 170, 0.28);
+  border-radius: 16px;
+  background:
+    radial-gradient(120% 90% at 25% 30%, #08192c 0%, #040b15 62%),
+    #040b15;
+}
+
+.jm-map::before,
+.jm-map::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.jm-map::before {
+  background:
+    repeating-linear-gradient(
+      0deg,
+      transparent 0 47px,
+      rgba(135, 197, 230, 0.05) 47px 48px
+    ),
+    repeating-linear-gradient(
+      90deg,
+      transparent 0 47px,
+      rgba(135, 197, 230, 0.05) 47px 48px
+    );
+}
+
+.jm-map::after {
+  box-shadow: inset 0 0 70px rgba(3, 9, 18, 0.7);
+}
+
+.jm-map-canvas {
+  position: absolute;
+  inset: 0;
+}
+
+.jm-map-canvas svg {
+  display: block;
+}
+
+.jm-coast-glow {
+  fill: none;
+  stroke: #22d3ee;
+  stroke-opacity: 0.6;
+  stroke-width: 8;
+}
+
+.jm-contour {
+  fill: none;
+  stroke: #35b7d8;
+  stroke-opacity: 0.07;
+}
+
+.jm-coast {
+  fill: none;
+  stroke: #3fb6d4;
+  stroke-opacity: 0.55;
+  stroke-width: 1.2;
+}
+
+.jm-town circle {
+  fill: #a9c3d6;
+  opacity: 0.85;
+}
+
+.jm-town text,
+.jm-endpoint text {
+  paint-order: stroke;
+  stroke: #06111d;
+  stroke-linejoin: round;
+  stroke-width: 4px;
+}
+
+.jm-town text {
+  fill: #d6e3ee;
+  font-size: 13px;
+}
+
+.jm-line-glow {
+  fill: none;
+  stroke: #22d3ee;
+  stroke-opacity: 0.5;
+  stroke-width: 9;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.jm-line {
+  fill: none;
+  stroke-width: 3.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.jm-line.walk {
+  stroke: #e6eef6;
+  stroke-width: 3;
+  stroke-dasharray: 0.5 7;
+}
+
+.jm-line.air {
+  stroke-dasharray: 10 8;
+}
+
+.jm-node .halo {
+  fill: rgba(34, 211, 238, 0.1);
+}
+
+.jm-node .disc {
+  fill: #0a2036;
+  stroke: #38d5f0;
+  stroke-width: 2;
+}
+
+.jm-node svg {
+  color: #8be8f8;
+}
+
+.jm-endpoint text {
+  fill: #fff;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.jm-endpoint.start .halo {
+  fill: rgba(34, 211, 238, 0.22);
+}
+
+.jm-endpoint.start .dot {
+  fill: #67e8f9;
+  stroke: #fff;
+  stroke-width: 1.5;
+}
+
+.jm-endpoint.end .halo {
+  fill: rgba(129, 140, 248, 0.22);
+  stroke: #818cf8;
+  stroke-width: 1.5;
+}
+
+.jm-endpoint.end .dot {
+  fill: #c7d2fe;
+}
+
+.jm-stats {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  right: 12px;
+  z-index: 1;
+  display: flex;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 10px 14px;
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  border-radius: 12px;
+  background: rgba(7, 17, 31, 0.72);
+  -webkit-backdrop-filter: blur(14px);
+  backdrop-filter: blur(14px);
+}
+
+.jm-stats .jm-metric strong {
+  font-size: 1.0625rem;
+}
+
+.jm-controls {
+  position: absolute;
+  bottom: 12px;
+  left: 12px;
+  z-index: 1;
+  display: flex;
+  gap: 6px;
+}
+
+.jm-controls button {
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  padding: 0;
+  border: 1px solid rgba(148, 163, 184, 0.25);
+  border-radius: 10px;
+  background: rgba(7, 17, 31, 0.72);
+  color: #cfe0ee;
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+  transition:
+    border-color 0.2s,
+    color 0.2s;
+}
+
+.jm-controls button:hover:not(:disabled) {
+  border-color: rgba(34, 211, 238, 0.6);
+  color: var(--jm-cyan);
+}
+
+.jm-controls button[aria-pressed="true"] {
+  color: var(--jm-cyan);
+}
+
+.jm-controls button:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.jm-full-map {
+  position: absolute;
+  right: 12px;
+  bottom: 12px;
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  border: 1px solid rgba(148, 163, 184, 0.3);
+  border-radius: 10px;
+  background: rgba(7, 17, 31, 0.78);
+  color: #e6eef6;
+  font-size: var(--text-sm);
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+  transition: border-color 0.2s;
+}
+
+.jm-full-map:hover {
+  border-color: rgba(34, 211, 238, 0.6);
+}
+
+/* Journey details */
+
+.jm-details {
+  margin-top: 18px;
+  padding: 22px 20px 20px;
+  border: 1px solid var(--jm-line);
+  border-radius: 16px;
+  background: rgba(9, 22, 38, 0.78);
+}
+
+.jm-details h2 {
+  font-size: var(--text-lg);
+  font-weight: 700;
+}
+
+.jm-details-body {
+  display: grid;
+  gap: 22px;
+  margin: 20px 0 22px;
+}
+
+.jm-steps {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.jm-steps li {
+  position: relative;
+  display: grid;
+  grid-template-columns: 40px 46px minmax(0, 1fr);
+  column-gap: 12px;
+  padding-bottom: 16px;
+}
+
+.jm-steps li:last-child {
+  padding-bottom: 0;
+}
+
+.jm-steps li:not(:last-child)::before {
+  content: "";
+  position: absolute;
+  top: 44px;
+  bottom: 4px;
+  left: 19px;
+  width: 1px;
+  background: rgba(34, 211, 238, 0.35);
+}
+
+.jm-step-icon {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border: 1px solid rgba(34, 211, 238, 0.55);
+  border-radius: 50%;
+  background: #0b2136;
+  color: var(--jm-cyan);
+  box-shadow: 0 0 0 4px rgba(34, 211, 238, 0.06);
+}
+
+.jm-step-time {
+  padding-top: 2px;
+  color: #b8c8d8;
+  font-size: var(--text-sm);
+}
+
+.jm-step-time i {
+  display: block;
+  width: 5px;
+  height: 5px;
+  margin: 8px 0 0 3px;
+  background: #7fa3c4;
+  transform: rotate(45deg);
+}
+
+.jm-step-name {
+  display: grid;
+  gap: 4px;
+  align-content: start;
+  padding-top: 2px;
+}
+
+.jm-step-name strong {
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.jm-step-name small,
+.jm-step-status {
+  color: var(--jm-muted);
+  font-size: var(--text-xs);
+}
+
+.jm-step-status {
+  grid-column: 3;
+  padding-top: 2px;
+}
+
+.jm-destination {
+  display: grid;
+  align-content: start;
+  gap: 12px;
+  padding: 8px 8px 16px;
+  border: 1px solid var(--jm-line);
+  border-radius: 14px;
+  background: rgba(14, 30, 50, 0.6);
+}
+
+.dest-art {
+  display: block;
+  width: 100%;
+  aspect-ratio: 296 / 119;
+  border-radius: 10px;
+}
+
+.jm-destination > div {
+  display: grid;
+  gap: 4px;
+  padding: 0 8px;
+}
+
+.jm-destination span {
+  color: #b8c8d8;
+  font-size: var(--text-sm);
+}
+
+.jm-destination strong {
+  font-size: 1.75rem;
+  font-weight: 700;
+  line-height: 1.15;
+}
+
+.jm-destination p {
+  color: var(--jm-muted);
+  font-size: var(--text-sm);
+}
+
+.jm-outline-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  justify-self: start;
+  margin-top: 10px;
+  padding: 9px 16px;
+  border: 1px solid rgba(34, 211, 238, 0.4);
+  border-radius: 9px;
+  color: #e6eef6;
+  font-size: var(--text-sm);
+  transition: border-color 0.2s;
+}
+
+.jm-outline-button:hover {
+  border-color: var(--cyan);
+}
+
+.jm-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 16px 28px;
+  padding-top: 20px;
+  border-top: 1px solid var(--jm-line);
+}
+
+.jm-start {
+  display: inline-flex;
+  flex: 1 1 200px;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  min-height: 48px;
+  border-radius: 10px;
+  background: var(--jm-cyan);
+  color: #05141f;
+  font-size: var(--text-md);
+  font-weight: 600;
+  box-shadow: 0 6px 24px rgba(34, 211, 238, 0.2);
+  transition:
+    transform 0.2s,
+    filter 0.2s;
+}
+
+.jm-start:hover {
+  transform: translateY(-1px);
+  filter: brightness(1.07);
+}
+
+.jm-save {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  padding: 0 4px;
+  border: 0;
+  background: none;
+  color: #e6eef6;
+  font-size: var(--text-md);
+}
+
+.jm-save svg {
+  color: var(--jm-cyan);
+}
+
+.jm-save:hover {
+  color: #fff;
+}
+
+@media (min-width: 480px) {
+  .jm-step-name small {
+    display: block;
+  }
+
+  .jm-steps li {
+    grid-template-columns: 40px 44px minmax(0, 1fr) 96px;
+  }
+
+  .jm-step-status {
+    grid-column: auto;
+  }
+}
+
+@media (min-width: 640px) {
+  .jm-map {
+    height: 360px;
+  }
+
+  .jm-stats {
+    right: auto;
+    justify-content: flex-start;
+    gap: 26px;
+    padding: 12px 18px;
+  }
+
+  .jm-stats .jm-metric strong {
+    font-size: 1.25rem;
+  }
+
+  .jm-controls {
+    top: 16px;
+    right: 16px;
+    bottom: auto;
+    left: auto;
+    display: grid;
+  }
+
+  .jm-full-map {
+    right: 16px;
+    bottom: 16px;
+  }
+
+  .jm-stats {
+    top: 16px;
+    left: 16px;
+  }
+}
+
+@media (min-width: 768px) {
+  .jm-details {
+    padding: 24px 26px 22px;
+  }
+
+  .jm-details-body {
+    grid-template-columns: minmax(0, 1fr) minmax(200px, 224px);
+    gap: 26px;
+  }
+}
+
+@media (min-width: 1024px) {
+  .jm-layout {
+    grid-template-columns: minmax(0, 0.7fr) minmax(0, 1fr);
+    align-items: start;
+    gap: 34px;
+  }
+
+  .jm-map {
+    height: clamp(340px, 28vw, 420px);
+  }
+
+  .jm-details-body {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* Keep the map and details in view while scrolling a long list of routes. */
+@media (min-width: 1024px) and (min-height: 1000px) {
+  .jm-right {
+    position: sticky;
+    top: 88px;
+  }
+}
+
+@media (min-width: 1200px) {
+  .jm-details-body {
+    grid-template-columns: minmax(0, 1fr) minmax(200px, 224px);
+  }
+}
+
+@media (max-width: 479px) {
+  .jm-page {
+    padding-inline: 16px;
+  }
+
+  .jm-route {
+    padding: 16px 14px 14px;
+  }
+
+  .jm-route-head {
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    gap: 12px;
+  }
+
+  .jm-highlight {
+    grid-column: 2;
+    grid-row: 2;
+    justify-self: start;
+  }
+
+  .jm-route-metrics {
+    padding-left: 0;
+  }
+
+  .jm-route-foot {
+    padding-left: 0;
+  }
+
+  .jm-toolbar {
+    padding: 14px 16px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .jm-switch,
+  .jm-switch::after,
+  .jm-route,
+  .jm-start {
+    transition: none;
+  }
+}

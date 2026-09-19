@@ -8,6 +8,7 @@ import {
   Zap,
   Armchair,
   Leaf,
+  Orbit,
   ArrowUpRight,
 } from "lucide-react";
 const icons = {
@@ -21,6 +22,7 @@ const icons = {
   route: Route,
   armchair: Armchair,
   leaf: Leaf,
+  orbit: Orbit,
 };
 export function ModeIcon({ mode, ...props }) {
   const Icon = icons[mode] || Route;
