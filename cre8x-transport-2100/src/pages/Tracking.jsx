@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useEffectEvent, useRef, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import {
   ArrowLeft,
@@ -67,27 +67,64 @@ export default function Tracking() {
   const current = segments[currentIndex];
   const segmentEnd = current.start + current.minutes;
   const minutesToNext = Math.max(1, Math.ceil(segmentEnd - elapsed));
+  const previousCurrentIndex = useRef(currentIndex);
+  const previousArrived = useRef(arrived);
   const remaining = Math.max(0, Math.round(duration - elapsed));
   const arrival = clockTime(duration);
   const walkingNow = current.mode === "walk";
   const query = journeyQuery(from.name, to.name, selected.id, walking);
+
+  const announceCurrent = useEffectEvent(() => {
+    const speech = window.speechSynthesis;
+    if (!speech) return;
+
+    speech.cancel();
+    speech.speak(
+      new SpeechSynthesisUtterance(
+        `Next stop, ${current.stop}, in ${minutesToNext} minutes.`,
+      ),
+    );
+  });
 
   const toggleVoice = () => {
     const speech = window.speechSynthesis;
     setVoice((on) => {
       if (!on && speech) {
         speech.cancel();
-        speech.speak(
-          new SpeechSynthesisUtterance(
-            `Next stop, ${current.stop}, in ${minutesToNext} minutes.`,
-          ),
+        const announcement = new SpeechSynthesisUtterance(
+          arrived
+            ? `You've arrived in ${to.name}.`
+            : `Next stop, ${current.stop}, in ${minutesToNext} minutes.`,
         );
+        if (arrived) announcement.onend = () => setVoice(false);
+        speech.speak(announcement);
       } else if (on && speech) {
         speech.cancel();
       }
       return !on;
     });
   };
+  useEffect(() => {
+    const segmentChanged = previousCurrentIndex.current !== currentIndex;
+    previousCurrentIndex.current = currentIndex;
+    if (!voice || !segmentChanged) return;
+    announceCurrent();
+  }, [voice, currentIndex]);
+
+  useEffect(() => {
+    const arrivedNow = arrived && !previousArrived.current;
+    previousArrived.current = arrived;
+    const speech = window.speechSynthesis;
+    if (!voice || !arrivedNow || !speech) return;
+
+    speech.cancel();
+    const announcement = new SpeechSynthesisUtterance(
+      `You've arrived in ${to.name}.`,
+    );
+    announcement.onend = () => setVoice(false);
+    speech.speak(announcement);
+  }, [voice, arrived, to.name]);
+
   const share = async () => {
     const data = { title: `My journey to ${to.name}`, url: window.location.href };
     try {
