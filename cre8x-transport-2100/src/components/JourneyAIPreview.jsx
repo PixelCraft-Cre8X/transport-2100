@@ -12,12 +12,11 @@ import {
   X,
 } from "lucide-react";
 import { formatFare, journeyQuery, readJourney } from "../data/journeys";
-import { locations } from "../data/network";
+import { createJourneyAIResponse } from "../utils/journeyAI";
 import {
-  createJourneyAIResponse,
-  parseJourneyRequest,
-  recommendJourney,
-} from "../utils/journeyAI";
+  createJourneyConversation,
+  handleJourneyRequest,
+} from "../utils/journeyConversation";
 import { ModeIcon } from "./UI";
 
 const greeting =
@@ -115,11 +114,15 @@ function JourneyAIDialog({
     style: params.get("style") ?? currentJourney.selected?.id,
     walking: params.get("walking") ?? currentJourney.walking,
   };
+  const [conversation, setConversation] = useState(() =>
+    createJourneyConversation(context),
+  );
   const route = result?.status === "success" ? result.route : null;
   const response = result ? createJourneyAIResponse(result) : "";
-  const answer = route
-    ? response.slice(0, response.indexOf(".") + 1)
-    : response;
+  const answer =
+    route && result.kind !== "answer"
+      ? response.slice(0, response.indexOf(".") + 1)
+      : response;
   const voiceNotice =
     notice ||
     (permission !== "granted" && permission !== "requesting-permission"
@@ -187,12 +190,12 @@ function JourneyAIDialog({
     setStatus("processing");
     // Calculate from the existing network after React renders the processing state.
     processingRef.current = window.setTimeout(() => {
-      const recommendation = recommendJourney(
-        parseJourneyRequest(request, context),
-      );
+      const turn = handleJourneyRequest(request, conversation);
+      const recommendation = turn.result;
+      setConversation(turn.conversation);
       setResult(recommendation);
       setStatus("result");
-        speakMessage(createJourneyAIResponse(recommendation));
+      speakMessage(createJourneyAIResponse(recommendation));
     }, 0);
   }
 
@@ -423,9 +426,9 @@ function JourneyAIDialog({
             <X size={20} aria-hidden="true" />
           </button>
         </header>
-        {context.from && context.to && (
+        {conversation.from && conversation.to && (
           <p className="journey-ai-context">
-            <span>Current journey</span> {context.from} → {context.to}
+            <span>Current journey</span> {conversation.from} → {conversation.to}
           </p>
         )}
         <div className="journey-ai-voice">
@@ -599,12 +602,6 @@ function JourneyAIDialog({
                 </button>
               )}
             </div>
-          )}
-          {result?.status === "error" && (
-            <p className="journey-ai-network">
-              Available destinations:{" "}
-              {locations.map(({ name }) => name).join(" · ")}
-            </p>
           )}
         </div>
         <footer className="journey-ai-composer">

@@ -1,3 +1,6 @@
+// Approximate town centres, in [longitude, latitude]. Added city coordinates:
+// GeoNames (CC BY 4.0), https://download.geonames.org/export/dump/ (Sri Lanka).
+// Existing demo hubs retain their coordinates; these are not surveyed stops.
 export const locations = [
   {
     name: "Maharagama",
@@ -12,6 +15,7 @@ export const locations = [
   },
   {
     name: "Colombo Fort",
+    aliases: ["Fort", "Colombo Fort Station", "Fort Station"],
     coordinates: [79.85, 6.934],
     tagline: "Where the old harbour district meets the new skyline.",
   },
@@ -21,12 +25,21 @@ export const locations = [
     tagline: "The hill capital, wrapped in mist and living tradition.",
   },
   {
-    name: "Airport",
-    coordinates: [79.885, 7.18],
+    name: "Bandaranaike International Airport",
+    aliases: [
+      "Airport",
+      "BIA",
+      "Katunayake Airport",
+      "Colombo Airport",
+      "Bandaranaike Airport",
+    ],
+    // Sri Lanka AIP VCBI AD 2.2: 071048.68N 0795307.08E (airport.lk).
+    coordinates: [79.8853, 7.18019],
     tagline: "Your gateway to the island, one hop from every hub.",
   },
   {
     name: "Port City",
+    aliases: ["Colombo Port City"],
     coordinates: [79.837, 6.941],
     tagline: "A city built on the sea, designed for the next century.",
   },
@@ -39,6 +52,39 @@ export const locations = [
     name: "Kalutara",
     coordinates: [79.96, 6.585],
     tagline: "River, beach and temple on the doorstep of the south.",
+  },
+  { name: "Colombo", coordinates: [79.84868, 6.93548] },
+  { name: "Moratuwa", coordinates: [79.8816, 6.773] },
+  { name: "Panadura", coordinates: [79.9026, 6.7132] },
+  { name: "Beruwala", coordinates: [79.9828, 6.4788] },
+  { name: "Bentota", coordinates: [79.99575, 6.42598] },
+  { name: "Ambalangoda", coordinates: [80.0538, 6.2355] },
+  { name: "Hikkaduwa", coordinates: [80.1012, 6.1407] },
+  { name: "Matara", coordinates: [80.53528, 5.94851] },
+  { name: "Hambantota", coordinates: [81.1185, 6.1241] },
+  {
+    name: "Rathnapura",
+    aliases: ["Ratnapura", "Rathnapura town", "Ratnapura town"],
+    coordinates: [80.4036, 6.6858],
+  },
+  {
+    name: "Nuwara Eliya",
+    aliases: ["Nuwaraeliya"],
+    coordinates: [80.78286, 6.97078],
+  },
+  { name: "Ella", coordinates: [81.0463, 6.8756] },
+  { name: "Badulla", coordinates: [81.0577, 6.9802] },
+  { name: "Kurunegala", coordinates: [80.3683, 7.4839] },
+  { name: "Anuradhapura", coordinates: [80.41306, 8.31223] },
+  { name: "Polonnaruwa", coordinates: [81.00274, 7.93965] },
+  { name: "Jaffna", coordinates: [80.00742, 9.66845] },
+  { name: "Trincomalee", aliases: ["Trinco"], coordinates: [81.2289, 8.5778] },
+  { name: "Batticaloa", coordinates: [81.6924, 7.7102] },
+  { name: "Negombo", coordinates: [79.8358, 7.2083] },
+  {
+    name: "Katunayake",
+    aliases: ["Katunayaka"],
+    coordinates: [79.88837, 7.16992],
   },
 ];
 

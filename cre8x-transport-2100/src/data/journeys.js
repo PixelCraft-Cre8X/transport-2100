@@ -1,12 +1,13 @@
 import { coastalCorridor, comparisonTags, locations } from "./network";
+import { findLocation } from "../utils/locationResolver.js";
 
 export function readJourney(params) {
-  const from =
-    locations.find((l) => l.name === params.get("from")) || locations[0];
+  const from = findLocation(params.get("from")) || locations[0];
+  const destination = findLocation(params.get("to"));
   const to =
-    locations.find(
-      (l) => l.name === params.get("to") && l.name !== from.name,
-    ) || locations.find((l) => l.name !== from.name);
+    destination && destination !== from
+      ? destination
+      : locations.find((l) => l.name !== from.name);
   const walking = params.get("walking") === "low" ? "low" : "include";
   const options = buildRoutes(from, to, walking);
   const selected =
