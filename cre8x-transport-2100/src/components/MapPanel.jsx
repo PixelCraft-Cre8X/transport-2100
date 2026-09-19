@@ -93,7 +93,7 @@ export default function MapPanel({
           size={15}
         />
       </div>
-      <div className="map-controls">
+      <div className="map-controls glass-card">
         <button aria-label="Center route">
           <Navigation size={15} />
         </button>
@@ -104,7 +104,7 @@ export default function MapPanel({
           <span>−</span>
         </button>
       </div>
-      <div className="map-legend">
+      <div className="map-legend glass-card">
         {selected.segments
           .filter((s, i, a) => a.findIndex((x) => x.mode === s.mode) === i)
           .map((segment) => (

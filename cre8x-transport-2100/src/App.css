@@ -1572,6 +1572,113 @@
     animation: none !important;
   }
 }
+
+/* Shared cinematic glass surfaces. Keep these on contained UI panels, not the page or map. */
+:root {
+  --glass-surface: rgba(30, 41, 59, 0.62);
+  --glass-surface-strong: rgba(15, 30, 48, 0.82);
+  --glass-border: rgba(148, 163, 184, 0.3);
+  --glass-highlight: rgba(226, 232, 240, 0.14);
+  --glass-shadow: 0 18px 46px rgba(1, 7, 17, 0.3);
+  --glass-blur: 18px;
+}
+
+.glass-panel,
+.glass-card,
+.glass-nav,
+.glass-modal {
+  border: 1px solid var(--glass-border);
+  background:
+    linear-gradient(
+      145deg,
+      rgba(148, 163, 184, 0.14),
+      transparent 42%
+    ),
+    var(--glass-surface);
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  backdrop-filter: blur(var(--glass-blur));
+  box-shadow:
+    inset 0 1px 0 var(--glass-highlight),
+    var(--glass-shadow);
+}
+
+.glass-panel {
+  border-radius: 18px;
+}
+
+.glass-card {
+  border-radius: 14px;
+}
+
+.glass-nav {
+  background:
+    linear-gradient(
+      180deg,
+      rgba(30, 41, 59, 0.72),
+      rgba(7, 17, 31, 0.82)
+    );
+  box-shadow:
+    inset 0 -1px 0 rgba(148, 163, 184, 0.08),
+    0 12px 34px rgba(1, 7, 17, 0.28);
+}
+
+.glass-modal {
+  background:
+    linear-gradient(
+      145deg,
+      rgba(139, 92, 246, 0.12),
+      transparent 45%
+    ),
+    var(--glass-surface-strong);
+  border-radius: 20px;
+  box-shadow:
+    inset 0 1px 0 rgba(226, 232, 240, 0.18),
+    0 24px 70px rgba(1, 7, 17, 0.54);
+}
+
+.glass-card:hover,
+.glass-card:focus-visible {
+  border-color: rgba(34, 211, 238, 0.46);
+  box-shadow:
+    inset 0 1px 0 rgba(226, 232, 240, 0.18),
+    0 16px 38px rgba(1, 7, 17, 0.34);
+}
+
+.route-option.selected {
+  border-color: rgba(34, 211, 238, 0.62);
+  box-shadow:
+    0 0 0 1px rgba(34, 211, 238, 0.12),
+    0 16px 36px rgba(1, 7, 17, 0.28);
+}
+
+.assistant-card.glass-panel {
+  background:
+    linear-gradient(110deg, rgba(139, 92, 246, 0.18), transparent 46%),
+    var(--glass-surface);
+}
+
+.network-panel.glass-panel,
+.journey-detail.glass-panel,
+.tracking-card.glass-panel {
+  background: var(--glass-surface-strong);
+}
+
+.map-status-pill.glass-card {
+  background: rgba(7, 17, 31, 0.78);
+  -webkit-backdrop-filter: blur(14px);
+  backdrop-filter: blur(14px);
+}
+
+@media (max-width: 767px) {
+  .glass-panel,
+  .glass-modal {
+    border-radius: 16px;
+  }
+
+  .glass-card {
+    border-radius: 12px;
+  }
+}
 .mapbox-canvas {
   position: absolute;
   inset: 0;
