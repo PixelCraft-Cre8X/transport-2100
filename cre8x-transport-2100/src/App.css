@@ -1045,18 +1045,16 @@
     font-size: 14px;
   }
 
-  .brand-mark {
+  .brand-logo {
     width: 34px;
     height: 34px;
-    border-radius: 9px;
   }
 
-  .brand-mark svg {
-    width: 19px;
-    height: 19px;
+  .brand-name {
+    font-size: 16px;
   }
 
-  .brand small,
+  .brand-name small,
   .desktop-nav,
   .weather-meta,
   .header-divider,
@@ -1084,7 +1082,7 @@
     left: 0;
     z-index: 50;
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(4, minmax(0, 1fr));
     min-height: 68px;
     padding: 6px 12px max(6px, env(safe-area-inset-bottom));
     border-top: 1px solid rgba(148, 163, 184, 0.22);
@@ -1136,7 +1134,7 @@
   }
 
   .hero-image img {
-    object-position: 59% center;
+    object-position: 59% 65%;
   }
 
   .hero-shade {
@@ -1211,14 +1209,42 @@
   }
 
   .quick-destinations {
-    gap: 14px;
-    padding: 14px 20px;
-    overflow-x: auto;
-    white-space: nowrap;
+    padding: 31px 20px 34px;
   }
 
-  .quick-destinations > span {
-    display: none;
+  .quick-heading {
+    align-items: flex-start;
+    margin-bottom: 15px;
+  }
+
+  .quick-heading h2 {
+    font-size: 24px;
+  }
+
+  .quick-change {
+    flex: none;
+    min-height: 0;
+    padding: 8px 9px;
+    font-size: 10px;
+  }
+
+  .quick-destination-list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 9px;
+  }
+
+  .quick-destination-button {
+    padding: 12px 10px;
+    gap: 8px;
+  }
+
+  .quick-destination-icon {
+    width: 30px;
+    height: 30px;
+  }
+
+  .quick-destination-copy strong {
+    font-size: 11px;
   }
 
   .transport-section,
@@ -1489,6 +1515,22 @@
 }
 
 @media (max-width: 479px) {
+  .quick-heading {
+    gap: 10px;
+  }
+
+  .quick-heading h2 {
+    font-size: 21px;
+  }
+
+  .quick-change {
+    padding-inline: 7px;
+  }
+
+  .quick-destination-list {
+    grid-template-columns: 1fr;
+  }
+
   .transport-grid {
     grid-template-columns: 1fr;
   }

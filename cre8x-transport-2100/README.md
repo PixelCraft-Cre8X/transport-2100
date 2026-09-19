@@ -1,6 +1,6 @@
-# LANKA / 2100
+# moveone
 
-LANKA / 2100 is a frontend-only React + Vite concept for Cre8X 3.0 – The Oracle Challenge. It presents a connected Sri Lankan transportation ecosystem across three responsive screens:
+moveone is a frontend-only React + Vite concept for Cre8X 3.0 – The Oracle Challenge. It presents a connected Sri Lankan transportation ecosystem across three responsive screens:
 
 - **Discover** (`/`) — futuristic hero, journey planner, mobility modes, Journey AI preview, and network pulse.
 - **Your journey** (`/journey`) — six route styles, route comparison, route timeline, Smart Road intelligence, and accessibility badges.
