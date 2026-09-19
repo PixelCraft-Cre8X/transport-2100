@@ -19,25 +19,25 @@ const findLocation = (value) =>
   );
 
 const lowWalkingPattern =
-  /\b(wheelchair|accessible|accessibility|step[- ]free|less walking|minimum walking|minimi[sz]e walking|difficulty walking|elderly|grandmother|grandfather|senior|walk less|no walking)\b/;
+  /\b(wheelchair|wheel chair|accessible|accessibility|step[- ]free|barrier[- ]free|less walking|minimum walking|minimi[sz]e walking|difficulty walking|hard to walk|can't walk far|cannot walk far|elderly|grandmother|grandfather|senior|older person|older adult|walk less|no walking)\b/;
 const stylePatterns = [
   [
     "fastest",
-    /\b(fastest|quickest|faster|as fast as possible|shortest time)\b/,
+    /\b(fastest|quickest|faster|as fast as possible|shortest time|quick route|quick way|in a hurry|soonest|least time)\b/,
   ],
   [
     "eco",
-    /\b(cheapest|cheaper|cheap|budget|lowest fare|save money|green|greenest|eco|environment(?:ally)? friendly)\b/,
+    /\b(cheapest|cheaper|cheap|budget|lowest fare|save money|save some money|low cost|affordable|green|greenest|eco|environment(?:ally)? friendly|better for the environment)\b/,
   ],
   [
     "simplest",
-    /\b(simple|simplest|direct|few(?:er)? transfers|no transfers?|easy connections?)\b/,
+    /\b(simple|simplest|direct|straight there|few(?:er)? transfers?|no transfers?|easy connections?|easy route|easiest|least changes|no changing)\b/,
   ],
   [
     "comfortable",
-    /\b(comfortable|comfort|quiet|relax|elderly|grandmother|grandfather|senior)\b/,
+    /\b(comfortable|comfort|quiet|relax|relaxed|peaceful|easy on me|elderly|grandmother|grandfather|senior|older person|older adult)\b/,
   ],
-  ["healthy", /\b(healthy|walking|exercise|walk more)\b/],
+  ["healthy", /\b(healthy|walking|exercise|walk more|more walking|active route)\b/],
 ];
 const modePatterns = {
   air: "air taxis|air taxi|air transport|air travel|air",
@@ -65,11 +65,13 @@ export function parseJourneyRequest(text, currentJourneyContext = {}) {
 
   // Match directional clauses separately so an unknown explicit place never silently
   // falls back to the current trip. Skip infinitives such as "to save money".
-  for (const match of request.matchAll(/\b(from|to|towards?)\s+(?:the\s+)?/g)) {
+  for (const match of request.matchAll(
+    /\b(from|to|towards?|into|as far as)\s+(?:the\s+)?/g,
+  )) {
     const rest = request.slice(match.index + match[0].length);
     if (
       match[1] !== "from" &&
-      /^(?:find|get|travel|go|take|use|avoid|save|minimi[sz]e|walk|relax|plan|visit)\b/.test(
+      /^(?:find|get|travel|go|take|use|avoid|save|minimi[sz]e|walk|relax|plan|visit|show|bring|help|please)\b/.test(
         rest,
       )
     )
@@ -137,9 +139,13 @@ export function parseJourneyRequest(text, currentJourneyContext = {}) {
       request,
     ),
     accessibility:
-      /\b(wheelchair|accessible|accessibility|step[- ]free)\b/.test(request),
+      /\b(wheelchair|wheel chair|accessible|accessibility|step[- ]free|barrier[- ]free)\b/.test(
+        request,
+      ),
     compareCost:
-      /\bcheaper\b/.test(request) && from === contextFrom && to === contextTo,
+      /\b(cheaper|less expensive|lower cost|lower fare)\b/.test(request) &&
+      from === contextFrom &&
+      to === contextTo,
     currentStyle:
       currentJourneyContext.style ?? currentJourneyContext.selected?.id,
     currentWalking: currentJourneyContext.walking === "low" ? "low" : "include",
