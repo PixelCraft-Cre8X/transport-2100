@@ -8,7 +8,6 @@ import {
   MapPin,
   Pause,
   Play,
-  RotateCcw,
   Share2,
   ShieldCheck,
   Volume2,
@@ -73,10 +72,6 @@ export default function Tracking() {
   const walkingNow = current.mode === "walk";
   const query = journeyQuery(from.name, to.name, selected.id, walking);
 
-  const restart = () => {
-    setProgress(START_PROGRESS);
-    setPlaying(true);
-  };
   const toggleVoice = () => {
     const speech = window.speechSynthesis;
     setVoice((on) => {
@@ -113,7 +108,6 @@ export default function Tracking() {
         </Link>
         <div className="tk-title">
           <h1>On your way to {to.name}.</h1>
-          <p>Live map of your journey from {from.name}.</p>
         </div>
         <div className="tk-header-actions">
           <button className="icon-button" aria-label="Journey notifications">
@@ -142,13 +136,6 @@ export default function Tracking() {
           <div className="tk-panel-top">
             <span className="eyebrow">YOUR JOURNEY · LIVE</span>
             <span className="tk-panel-tools">
-              <button
-                className="icon-button"
-                aria-label="Restart simulation"
-                onClick={restart}
-              >
-                <RotateCcw size={16} />
-              </button>
               <button
                 className="icon-button"
                 aria-label={running ? "Pause simulation" : "Play simulation"}

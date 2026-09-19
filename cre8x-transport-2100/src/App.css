@@ -341,6 +341,7 @@
 
   .bottom-nav a,
   .bottom-nav button {
+    position: relative;
     display: flex;
     min-width: 0;
     min-height: 50px;
@@ -352,7 +353,13 @@
     font-size: 11px;
     font-weight: 600;
     line-height: 1.1;
+    border: 1px solid transparent;
     border-radius: 8px;
+    transition:
+      color 0.2s ease,
+      background 0.2s ease,
+      border-color 0.2s ease,
+      box-shadow 0.2s ease;
   }
 
   .bottom-nav a span,
@@ -365,18 +372,47 @@
     white-space: nowrap;
   }
 
+  .bottom-nav a:hover,
+  .bottom-nav a:focus-visible {
+    color: var(--white);
+    border-color: rgba(34, 211, 238, 0.24);
+    background: rgba(34, 211, 238, 0.1);
+    box-shadow: inset 0 1px 0 rgba(226, 232, 240, 0.08);
+    outline: none;
+  }
+
   .bottom-nav a.active {
+    color: var(--white);
+    border-color: rgba(34, 211, 238, 0.34);
+    background: rgba(34, 211, 238, 0.14);
+    box-shadow: inset 0 1px 0 rgba(226, 232, 240, 0.1);
+  }
+
+  .bottom-nav a.active::after {
+    position: absolute;
+    right: 18px;
+    bottom: 3px;
+    left: 18px;
+    height: 2px;
+    border-radius: 2px;
+    background: var(--cyan);
+    box-shadow: 0 0 12px rgba(34, 211, 238, 0.8);
+    content: "";
+  }
+
+  .bottom-nav a.active svg:first-child {
     color: var(--cyan);
-    background: rgba(34, 211, 238, 0.08);
   }
 
   .bottom-nav a:active {
-    background: rgba(34, 211, 238, 0.14);
+    color: var(--white);
+    border-color: rgba(34, 211, 238, 0.42);
+    background: rgba(34, 211, 238, 0.18);
+    box-shadow: inset 0 1px 0 rgba(226, 232, 240, 0.12);
   }
 
   .bottom-nav button {
     padding: 0;
-    border: 1px solid transparent;
     background: transparent;
     cursor: pointer;
   }
@@ -1014,5 +1050,103 @@
   .smart-road p,
   .system-stats small {
     font-size: 0.875rem;
+  }
+}
+
+@media (max-width: 767px) {
+  .brand {
+    font-size: 0.9375rem;
+  }
+
+  .brand-name {
+    font-size: 1.0625rem;
+  }
+
+  .hero-copy h1 {
+    font-size: clamp(40px, 11vw, 50px);
+  }
+
+  .hero-copy > p {
+    font-size: var(--text-sm);
+  }
+
+  .hero-tags span {
+    font-size: var(--text-xs);
+  }
+
+  .hero-caption {
+    font-size: 0.75rem;
+  }
+
+  .planner h2 {
+    font-size: 1.5rem;
+  }
+
+  .quick-heading h2 {
+    font-size: 1.5625rem;
+  }
+
+  .quick-change,
+  .quick-destination-button,
+  .quick-destination-copy strong {
+    font-size: var(--text-xs);
+  }
+
+  .section-header h2 {
+    font-size: clamp(25px, 7vw, 31px);
+  }
+
+  .transport-copy h3,
+  .assistant-card h2 {
+    font-size: 1.0625rem;
+  }
+
+  .transport-copy .tiny-label,
+  .mode-status,
+  .location-shortcut span,
+  .tiny-label {
+    font-size: 0.8125rem;
+  }
+
+  .bottom-nav a,
+  .bottom-nav button {
+    font-size: var(--text-xs);
+  }
+
+  .planner-footnote {
+    font-size: var(--text-xs) !important;
+  }
+
+  .network-grid strong {
+    font-size: var(--text-sm);
+  }
+
+  .network-grid small,
+  .quick-destination-copy small {
+    font-size: var(--text-xs);
+  }
+
+  .assistant-card p {
+    font-size: var(--text-sm);
+  }
+
+  .page-footer,
+  .footer-network {
+    font-size: 0.75rem;
+  }
+
+  .timeline-title h3,
+  .smart-road strong,
+  .smart-alert strong,
+  .system-stats strong {
+    font-size: var(--text-sm);
+  }
+
+  .timeline-title span,
+  .route-timeline li p,
+  .smart-road p,
+  .smart-alert p,
+  .system-stats small {
+    font-size: var(--text-xs);
   }
 }
