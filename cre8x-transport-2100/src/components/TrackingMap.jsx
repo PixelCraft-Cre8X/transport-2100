@@ -117,7 +117,7 @@ function Callout({
       </span>
       {kind === "end" && !narrow && (
         <span className="tk-thumb">
-          <DestinationArt landmark={to.landmark} />
+          <DestinationArt src={to.image} alt={`${to.name} destination`} />
         </span>
       )}
     </div>
