@@ -64,6 +64,23 @@
   border: 0;
   font-size: 11px;
   outline: 0;
+  color-scheme: dark;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right center;
+  background-size: 13px;
+  padding-right: 22px;
+}
+
+.journey-toolbar .glass-select {
+  min-width: 165px;
+}
+
+.journey-toolbar .glass-select-trigger {
+  min-height: 30px;
+  color: #bac8d5;
+  font-size: var(--text-sm);
 }
 .journey-layout {
   display: grid;
@@ -1677,6 +1694,206 @@
 
   .glass-card {
     border-radius: 12px;
+  }
+}
+
+@media (min-width: 1024px) {
+  .desktop-nav a {
+    font-size: var(--text-sm);
+  }
+
+  .brand-name {
+    font-size: var(--text-lg);
+  }
+
+  .brand-name small {
+    font-size: var(--text-xs);
+  }
+
+  .header-meta {
+    font-size: var(--text-sm);
+  }
+
+  .hero-copy > p {
+    font-size: var(--text-md);
+  }
+
+  .planner h2 {
+    font-size: 1.75rem;
+  }
+
+  .planner > p,
+  .location-field select,
+  .walking-preference select {
+    font-size: var(--text-sm);
+  }
+
+  .field-label,
+  .planner-footnote {
+    font-size: var(--text-xs) !important;
+  }
+
+  .location-shortcut,
+  .walking-preference {
+    font-size: var(--text-sm);
+  }
+
+  .quick-destination-button {
+    font-size: var(--text-sm);
+  }
+
+  .quick-destination-copy strong {
+    font-size: var(--text-sm);
+  }
+
+  .quick-destination-copy small {
+    font-size: var(--text-xs);
+  }
+
+  .transport-copy h3 {
+    font-size: var(--text-lg);
+  }
+
+  .transport-copy p,
+  .mode-status,
+  .network-grid strong,
+  .network-grid small {
+    font-size: var(--text-xs);
+  }
+
+  .assistant-card h2,
+  .network-heading h2 {
+    font-size: var(--text-lg);
+  }
+
+  .assistant-card p {
+    font-size: var(--text-sm);
+  }
+
+  .back-link,
+  .journey-toolbar,
+  .tracking-header p:not(.eyebrow) {
+    font-size: var(--text-sm);
+  }
+
+  .page-heading p:not(.eyebrow) {
+    font-size: var(--text-md);
+  }
+
+  .route-option {
+    padding-block: 16px;
+  }
+
+  .option-top strong {
+    font-size: var(--text-sm);
+  }
+
+  .option-top small,
+  .option-bottom,
+  .option-bottom .badge {
+    font-size: var(--text-xs);
+  }
+
+  .option-metrics strong {
+    font-size: 1.375rem;
+  }
+
+  .option-metrics strong small {
+    font-size: var(--text-xs);
+  }
+
+  .option-metrics > span,
+  .mode-chain {
+    font-size: var(--text-xs);
+  }
+
+  .journey-detail {
+    padding: 26px 28px;
+  }
+
+  .summary-metrics strong {
+    font-size: 1.5rem;
+  }
+
+  .summary-metrics span,
+  .timeline-heading span,
+  .timeline-title span,
+  .route-timeline li p,
+  .timeline-status,
+  .accessibility-badges span,
+  .detail-footnote {
+    font-size: var(--text-xs);
+  }
+
+  .timeline-title h3 {
+    font-size: var(--text-sm);
+  }
+
+  .map-preview-link,
+  .map-status-pill,
+  .tracking-actions-row .button {
+    font-size: var(--text-xs);
+  }
+
+  .smart-road strong,
+  .smart-alert strong,
+  .system-stats strong {
+    font-size: var(--text-sm);
+  }
+
+  .smart-road p,
+  .smart-alert p,
+  .system-stats small,
+  .tracking-hero p,
+  .tracking-destination span:last-child,
+  .eta-row span,
+  .progress-label,
+  .map-powered {
+    font-size: var(--text-xs);
+  }
+
+  .tracking-destination strong,
+  .eta-row strong {
+    font-size: 1.25rem;
+  }
+
+  .map-legend,
+  .map-controls button {
+    font-size: var(--text-xs);
+  }
+}
+
+@media (max-width: 767px) {
+  .bottom-nav a {
+    font-size: 0.8125rem;
+  }
+
+  .planner > p,
+  .location-field select,
+  .walking-preference select {
+    font-size: var(--text-sm);
+  }
+
+  .field-label {
+    font-size: var(--text-xs);
+  }
+
+  .quick-destination-copy small,
+  .mode-status,
+  .network-grid small {
+    font-size: var(--text-xs);
+  }
+
+  .option-top small,
+  .option-bottom,
+  .option-bottom .badge,
+  .summary-metrics span,
+  .timeline-title span,
+  .route-timeline li p,
+  .smart-road p,
+  .smart-alert p,
+  .system-stats small {
+    font-size: var(--text-xs);
   }
 }
 .mapbox-canvas {

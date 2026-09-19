@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import { locations } from "../data/network";
 import { journeyQuery } from "../data/journeys";
+import GlassSelect from "./GlassSelect";
 export default function JourneyPlannerCard() {
   const [from, setFrom] = useState("Maharagama");
   const [to, setTo] = useState("Galle");
@@ -39,18 +40,18 @@ export default function JourneyPlannerCard() {
           <Circle size={17} />
           <span>
             <span className="field-label">FROM</span>
-            <select
+            <GlassSelect
               aria-label="Starting location"
+              options={locations.map((location) => ({
+                label: location.name,
+                value: location.name,
+              }))}
               value={from}
-              onChange={(e) => {
-                setFrom(e.target.value);
+              onChange={(value) => {
+                setFrom(value);
                 setMessage("");
               }}
-            >
-              {locations.map((l) => (
-                <option key={l.name}>{l.name}</option>
-              ))}
-            </select>
+            />
           </span>
         </label>
         <button
@@ -68,18 +69,18 @@ export default function JourneyPlannerCard() {
           <MapPin size={19} />
           <span>
             <span className="field-label">TO</span>
-            <select
+            <GlassSelect
               aria-label="Destination"
+              options={locations.map((location) => ({
+                label: location.name,
+                value: location.name,
+              }))}
               value={to}
-              onChange={(e) => {
-                setTo(e.target.value);
+              onChange={(value) => {
+                setTo(value);
                 setMessage("");
               }}
-            >
-              {locations.map((l) => (
-                <option key={l.name}>{l.name}</option>
-              ))}
-            </select>
+            />
           </span>
         </label>
       </div>
@@ -98,14 +99,16 @@ export default function JourneyPlannerCard() {
       <label className="walking-preference">
         <Footprints size={16} />
         <span>Walking preference</span>
-        <select
+        <GlassSelect
           aria-label="Walking preference"
+          className="walking-select"
+          options={[
+            { label: "Include walks", value: "include" },
+            { label: "Minimize walking", value: "low" },
+          ]}
           value={walking}
-          onChange={(e) => setWalking(e.target.value)}
-        >
-          <option value="include">Include walks</option>
-          <option value="low">Minimize walking</option>
-        </select>
+          onChange={setWalking}
+        />
       </label>
       <button className="button primary" type="submit">
         Plan journey <ArrowRight size={18} />
