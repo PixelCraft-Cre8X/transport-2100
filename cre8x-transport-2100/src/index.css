@@ -545,27 +545,114 @@ main {
   border-radius: 4px;
 }
 .quick-destinations {
-  display: flex;
-  align-items: center;
-  gap: 20px;
-  padding: 18px 6vw;
+  max-width: 1380px;
+  margin: 0 auto;
+  padding: 38px 6vw 42px;
   border-bottom: 1px solid var(--line);
-  color: #748ca3;
-  font: 10px var(--mono);
-  letter-spacing: 0.05em;
 }
-.quick-destinations a {
+
+.quick-destinations-heading {
   display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 20px;
+  margin-bottom: 20px;
+}
+
+.quick-destinations-heading h2 {
+  margin-top: 10px;
+  font-size: 28px;
+}
+
+.quick-destinations-action {
+  display: inline-flex;
   align-items: center;
   gap: 5px;
-  color: #b8c8d8;
-  font-family: Manrope;
+  padding: 9px 12px;
+  color: #bdeef5;
+  border: 1px solid rgba(34, 211, 238, 0.28);
+  border-radius: 5px;
   font-size: 11px;
+  font-weight: 600;
+  background: rgba(34, 211, 238, 0.06);
 }
-.quick-destinations a svg:first-child {
+
+.quick-destinations-action:hover {
+  border-color: rgba(34, 211, 238, 0.62);
+  background: rgba(34, 211, 238, 0.12);
+}
+
+.quick-destinations-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.quick-destination-card {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  gap: 11px;
+  padding: 15px;
+  color: #b8c8d8;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: linear-gradient(
+    145deg,
+    rgba(16, 34, 57, 0.82),
+    rgba(9, 24, 40, 0.92)
+  );
+  transition:
+    border-color 0.2s ease,
+    transform 0.2s ease,
+    background 0.2s ease;
+}
+
+.quick-destination-card:hover {
+  border-color: rgba(34, 211, 238, 0.5);
+  background: rgba(16, 39, 62, 0.95);
+  transform: translateY(-2px);
+}
+
+.quick-destination-icon {
+  display: grid;
+  flex: none;
+  width: 34px;
+  height: 34px;
+  place-items: center;
   color: var(--cyan);
+  border: 1px solid rgba(34, 211, 238, 0.23);
+  border-radius: 6px;
+  background: rgba(34, 211, 238, 0.09);
 }
-.quick-destinations a svg:last-child {
+
+.quick-destination-copy {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.quick-destination-copy strong {
+  overflow: hidden;
+  color: #dbe8f2;
+  font-size: 12px;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.quick-destination-copy small {
+  overflow: hidden;
+  color: #71879c;
+  font: 9px var(--mono);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.quick-destination-arrow {
+  flex: none;
   color: #66809a;
 }
 .transport-section,

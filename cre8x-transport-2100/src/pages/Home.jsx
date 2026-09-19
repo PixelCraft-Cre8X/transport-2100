@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
   ArrowRight,
   ArrowUpRight,
@@ -28,8 +28,15 @@ const mobile =
   heroAssets["../assets/hero-colombo-2100-mobile.png"] ||
   desktop;
 export default function Home() {
-  const [assistantOpen, setAssistantOpen] = useState(false);
+  const { search } = useLocation();
+  const navigate = useNavigate();
+  const assistantOpen = new URLSearchParams(search).get("assistant") === "1";
   const [activeMode, setActiveMode] = useState(null);
+
+  const closeAssistant = () => {
+    navigate("/", { replace: true });
+  };
+
   return (
     <div className="home-page page-enter">
       <section className="hero-section">
@@ -77,16 +84,35 @@ export default function Home() {
           <JourneyPlannerCard />
         </div>
       </section>
-      <div className="quick-destinations">
-        <span>Find your next stop</span>
-        {["Colombo Fort", "Port City", "Kandy", "Airport"].map((name) => (
-          <Link key={name} to={`/journey?${journeyQuery("Maharagama", name)}`}>
-            <MapPin size={13} />
-            {name}
-            <ArrowUpRight size={13} />
+      <section className="quick-destinations" aria-labelledby="quick-destinations-title">
+        <div className="quick-destinations-heading">
+          <div>
+            <span className="eyebrow">START EXPLORING</span>
+            <h2 id="quick-destinations-title">Quick destinations</h2>
+          </div>
+          <Link className="quick-destinations-action" to="/journey">
+            Change route <ArrowRight size={15} />
           </Link>
-        ))}
-      </div>
+        </div>
+        <div className="quick-destinations-grid">
+          {["Colombo Fort", "Port City", "Kandy", "Airport"].map((name) => (
+            <Link
+              className="quick-destination-card"
+              key={name}
+              to={`/journey?${journeyQuery("Maharagama", name)}`}
+            >
+              <span className="quick-destination-icon">
+                <MapPin size={16} />
+              </span>
+              <span className="quick-destination-copy">
+                <strong>{name}</strong>
+                <small>From Maharagama</small>
+              </span>
+              <ArrowUpRight className="quick-destination-arrow" size={16} />
+            </Link>
+          ))}
+        </div>
+      </section>
       <section className="transport-section">
         <SectionHeader
           eyebrow="A NEW ERA OF MOBILITY"
@@ -141,7 +167,7 @@ export default function Home() {
           </div>
           <button
             className="button assistant-button"
-            onClick={() => setAssistantOpen(true)}
+            onClick={() => navigate("/?assistant=1")}
           >
             <Mic size={17} /> Ask Journey AI <ArrowUpRight size={16} />
           </button>
@@ -171,7 +197,7 @@ export default function Home() {
         </section>
       </div>
       {assistantOpen && (
-        <div className="modal-backdrop" onClick={() => setAssistantOpen(false)}>
+        <div className="modal-backdrop" onClick={closeAssistant}>
           <div
             className="assistant-dialog"
             role="dialog"
@@ -179,7 +205,7 @@ export default function Home() {
             aria-labelledby="assistant-title"
             onClick={(e) => e.stopPropagation()}
             onKeyDown={(e) => {
-              if (e.key === "Escape") setAssistantOpen(false);
+              if (e.key === "Escape") closeAssistant();
               if (e.key === "Tab") {
                 e.preventDefault();
                 e.currentTarget.querySelector("button").focus();
@@ -198,7 +224,7 @@ export default function Home() {
             <button
               autoFocus
               className="button primary"
-              onClick={() => setAssistantOpen(false)}
+              onClick={closeAssistant}
             >
               Back to exploring <ArrowRight size={17} />
             </button>

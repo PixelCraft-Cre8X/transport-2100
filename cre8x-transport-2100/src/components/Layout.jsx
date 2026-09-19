@@ -7,6 +7,7 @@ import {
   Map,
   Radio,
   Route,
+  Sparkles,
   Sun,
 } from "lucide-react";
 
@@ -31,6 +32,8 @@ function Brand() {
 }
 
 function Navigation({ mobile = false, search }) {
+  const assistantSelected = new URLSearchParams(search).get("assistant") === "1";
+
   return (
     <nav
       className={mobile ? "bottom-nav" : "desktop-nav"}
@@ -41,12 +44,26 @@ function Navigation({ mobile = false, search }) {
           key={to}
           to={to === "/" ? to : `${to}${search}`}
           end={to === "/"}
+          className={({ isActive }) =>
+            isActive && !(to === "/" && assistantSelected) ? "active" : ""
+          }
         >
           <Icon size={20} strokeWidth={1.7} />
           <span>{label}</span>
           {!mobile && <ArrowUpRight className="nav-arrow" size={15} />}
         </NavLink>
       ))}
+      {mobile && (
+        <NavLink
+          to="/?assistant=1"
+          end
+          className={assistantSelected ? "active" : ""}
+          aria-label="Open Journey AI"
+        >
+          <Sparkles size={20} strokeWidth={1.7} />
+          <span>Journey AI</span>
+        </NavLink>
+      )}
     </nav>
   );
 }
