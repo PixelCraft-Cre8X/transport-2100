@@ -619,8 +619,7 @@ main {
 }
 
 .location-field select:focus,
-.walking-preference select:focus,
-.journey-toolbar select:focus {
+.walking-preference select:focus {
   color: var(--white);
   outline: 1px solid rgba(34, 211, 238, 0.65);
   outline-offset: 3px;
