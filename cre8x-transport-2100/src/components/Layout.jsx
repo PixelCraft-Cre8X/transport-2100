@@ -106,6 +106,7 @@ export default function Layout() {
   const { pathname, search } = useLocation();
   const [journeyAIOpen, setJourneyAIOpen] = useState(false);
   const [microphonePermission, setMicrophonePermission] = useState("unknown");
+  const microphonePermissionRef = useRef("unknown");
   const permissionRequestRef = useRef(null);
   const openingRef = useRef(0);
   const returnFocusRef = useRef(null);
@@ -121,10 +122,13 @@ export default function Layout() {
 
   const requestMicrophone = useCallback(() => {
     if (permissionRequestRef.current) return permissionRequestRef.current;
+    if (microphonePermissionRef.current === "granted")
+      return Promise.resolve("granted");
     setMicrophonePermission("requesting-permission");
-    // Recheck on each opening/retry: permission or the input device may change.
+    // Reuse this session's grant; capture/permission failures invalidate it below.
     const pending = requestMicrophoneAccess()
       .then((permission) => {
+        microphonePermissionRef.current = permission;
         if (mountedRef.current) setMicrophonePermission(permission);
         return permission;
       })
@@ -151,10 +155,10 @@ export default function Layout() {
     openingRef.current += 1;
     setJourneyAIOpen(false);
   }, []);
-  const microphoneUnavailable = useCallback(
-    (reason) => setMicrophonePermission(reason),
-    [],
-  );
+  const microphoneUnavailable = useCallback((reason) => {
+    microphonePermissionRef.current = reason;
+    setMicrophonePermission(reason);
+  }, []);
   const requestingMicrophone = microphonePermission === "requesting-permission";
 
   useEffect(() => {
