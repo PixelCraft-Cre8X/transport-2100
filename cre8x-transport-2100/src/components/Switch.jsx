@@ -1,6 +1,11 @@
 import "./Switch.css";
 
-export default function Switch({ checked, onChange, labelledBy, small = false }) {
+export default function Switch({
+  checked,
+  onChange,
+  labelledBy,
+  small = false,
+}) {
   return (
     <button
       type="button"
