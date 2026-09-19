@@ -644,6 +644,11 @@
   padding-top: 2px;
 }
 
+.jm-step-status.delayed {
+  color: #f87171;
+  font-weight: 600;
+}
+
 .jm-destination {
   display: grid;
   align-content: start;

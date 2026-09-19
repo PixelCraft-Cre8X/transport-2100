@@ -26,7 +26,9 @@ export default function RouteTimeline({ segments, currentIndex = -1 }) {
                 ? "You are here"
                 : currentIndex > i
                   ? "Completed"
-                  : segment.status}
+                  : segment.delayMinutes > 0
+                    ? `Delayed +${segment.delayMinutes} min`
+                    : segment.status}
             </span>
           </div>
         </li>
