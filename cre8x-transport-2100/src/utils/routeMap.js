@@ -78,7 +78,8 @@ const overlaps = (a, b) =>
  * should be fitted into. `blocked` rects keep place names clear of overlays.
  * With `callout` ({ width, height, dx }) it also returns label anchors for the
  * start, each ride, each transfer and the destination. `progress` (0..1) adds a
- * vehicle on the path, and `follow` keeps the view centred on it.
+ * vehicle on the path, and `follow` keeps the view centred on it. `zoom` and
+ * `pan` (pixels) come from the map's zoom/drag state.
  */
 export function buildRouteMap({
   from,
@@ -88,6 +89,7 @@ export function buildRouteMap({
   h,
   box,
   zoom = 1,
+  pan = [0, 0],
   progress = null,
   follow = false,
   towns = [],
@@ -128,8 +130,8 @@ export function buildRouteMap({
   const vehicle0 = progress == null ? null : pointAt(path0, lengths, progress);
   const focus = follow && vehicle0 ? vehicle0 : [w / 2, h / 2];
   const view = ([x, y]) => [
-    w / 2 + (x - focus[0]) * zoom,
-    h / 2 + (y - focus[1]) * zoom,
+    w / 2 + (x - focus[0]) * zoom + pan[0],
+    h / 2 + (y - focus[1]) * zoom + pan[1],
   ];
   const project = (coordinates) => view(base(coordinates));
 

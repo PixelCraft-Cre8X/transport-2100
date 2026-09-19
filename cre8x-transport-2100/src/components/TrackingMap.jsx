@@ -14,14 +14,13 @@ import {
 import { trackingTowns } from "../data/network";
 import { buildRouteMap, toPath } from "../utils/routeMap";
 import useElementSize from "../utils/useElementSize";
+import { useMapGestures, useMapView } from "../utils/useMapView";
 import useMediaQuery from "../utils/useMediaQuery";
 import DestinationArt from "./DestinationArt";
 import Switch from "./Switch";
 import { ModeIcon } from "./UI";
 import "./RouteMap.css";
 
-const ZOOM_LEVELS = [0.8, 1, 1.3, 1.7, 2.2];
-const DEFAULT_ZOOM = 1;
 const PANEL_WIDTH = 256;
 
 const MODE_LABELS = {
@@ -117,8 +116,10 @@ export default function TrackingMap({
 }) {
   const overlay = useMediaQuery("(min-width: 1320px)");
   const [ref, { w, h }] = useElementSize();
-  const [zoomIndex, setZoomIndex] = useState(DEFAULT_ZOOM);
   const [follow, setFollow] = useState(false);
+  const { view, zoomBy, panBy, reset, recentre, zoomIn, zoomOut, canZoomIn, canZoomOut } =
+    useMapView();
+  useMapGestures(ref, { onZoom: zoomBy, onPan: panBy });
   const [layers, setLayers] = useState({
     stations: true,
     traffic: true,
@@ -126,7 +127,6 @@ export default function TrackingMap({
     access: false,
     hubs: true,
   });
-  const zoom = ZOOM_LEVELS[zoomIndex];
   const map = useMemo(() => {
     if (!w || !h) return null;
     return buildRouteMap({
@@ -135,28 +135,31 @@ export default function TrackingMap({
       segments,
       w,
       h,
-      zoom,
+      zoom: view.zoom,
+      pan: [view.x, view.y],
       progress,
       follow,
       towns: trackingTowns,
       ...layout(w, h, overlay),
     });
-  }, [from, to, segments, w, h, zoom, progress, follow, overlay]);
+  }, [from, to, segments, w, h, view, progress, follow, overlay]);
 
   const modes = segments
     .map((s) => s.mode)
     .filter((mode, i, all) => all.indexOf(mode) === i);
-  const stepZoom = (delta) =>
-    setZoomIndex((i) => Math.min(ZOOM_LEVELS.length - 1, Math.max(0, i + delta)));
-  const recentre = () => {
-    setZoomIndex(DEFAULT_ZOOM);
+  const toggleFollow = () => {
+    recentre();
+    setFollow((value) => !value);
+  };
+  const resetView = () => {
+    reset();
     setFollow(false);
   };
   const currentMode = segments[currentIndex]?.mode;
 
   return (
     <section className="tk-map" aria-label="Live route map">
-      <div className="tk-stage" ref={ref}>
+      <div className="tk-stage rm-interactive" ref={ref}>
         {map && (
           <svg
             width={w}
@@ -294,26 +297,23 @@ export default function TrackingMap({
           ))}
 
         <div className="tk-zoom" role="group" aria-label="Map controls">
-          <button type="button" aria-label="Zoom in" disabled={zoomIndex === ZOOM_LEVELS.length - 1} onClick={() => stepZoom(1)}>
+          <button type="button" aria-label="Zoom in" disabled={!canZoomIn} onClick={zoomIn}>
             <Plus size={18} />
           </button>
-          <button type="button" aria-label="Zoom out" disabled={zoomIndex === 0} onClick={() => stepZoom(-1)}>
+          <button type="button" aria-label="Zoom out" disabled={!canZoomOut} onClick={zoomOut}>
             <Minus size={18} />
           </button>
           <button
             type="button"
             aria-label="Follow vehicle"
             aria-pressed={follow}
-            onClick={() => {
-              setFollow((value) => !value);
-              setZoomIndex((i) => Math.max(i, 2));
-            }}
+            onClick={toggleFollow}
           >
             <Navigation size={18} />
           </button>
         </div>
 
-        <button type="button" className="tk-recentre" onClick={recentre}>
+        <button type="button" className="tk-recentre" onClick={resetView}>
           <LocateFixed size={18} /> Re-centre
         </button>
       </div>
