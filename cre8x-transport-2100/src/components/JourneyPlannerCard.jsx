@@ -6,7 +6,6 @@ import {
   LocateFixed,
   MapPin,
   Circle,
-  Footprints,
 } from "lucide-react";
 import { locations } from "../data/network";
 import { journeyQuery } from "../data/journeys";
@@ -14,7 +13,6 @@ import GlassSelect from "./GlassSelect";
 export default function JourneyPlannerCard() {
   const [from, setFrom] = useState("Maharagama");
   const [to, setTo] = useState("Galle");
-  const [walking, setWalking] = useState("include");
   const [message, setMessage] = useState("");
   const navigate = useNavigate();
   function submit(event) {
@@ -23,15 +21,12 @@ export default function JourneyPlannerCard() {
       setMessage("Choose a destination different from your starting point.");
       return;
     }
-    navigate(`/journey?${journeyQuery(from, to, "recommended", walking)}`);
+    navigate(`/journey?${journeyQuery(from, to, "recommended", "include")}`);
   }
   return (
     <form className="planner glass-panel" onSubmit={submit}>
       <div className="planner-heading">
         <span className="eyebrow">LET’S GET YOU THERE</span>
-        <span className="tiny-live">
-          <span className="status-dot" /> CONNECTED
-        </span>
       </div>
       <h2>Where to next?</h2>
       <p>One journey. Every way to move.</p>
@@ -96,20 +91,6 @@ export default function JourneyPlannerCard() {
       >
         <LocateFixed size={14} /> Use current location <span>Demo</span>
       </button>
-      <label className="walking-preference">
-        <Footprints size={16} />
-        <span>Walking preference</span>
-        <GlassSelect
-          aria-label="Walking preference"
-          className="walking-select"
-          options={[
-            { label: "Include walks", value: "include" },
-            { label: "Minimize walking", value: "low" },
-          ]}
-          value={walking}
-          onChange={setWalking}
-        />
-      </label>
       <button className="button primary" type="submit">
         Plan journey <ArrowRight size={18} />
       </button>
