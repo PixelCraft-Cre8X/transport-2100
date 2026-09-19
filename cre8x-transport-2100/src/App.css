@@ -1107,16 +1107,30 @@
     backdrop-filter: blur(16px);
   }
 
-  .bottom-nav a {
+  .bottom-nav a,
+  .bottom-nav button {
     display: flex;
+    min-width: 0;
     min-height: 50px;
     align-items: center;
     justify-content: center;
-    gap: 4px;
+    flex-direction: column;
+    gap: 3px;
     color: #8298ad;
     font-size: 11px;
     font-weight: 600;
+    line-height: 1.1;
     border-radius: 8px;
+  }
+
+  .bottom-nav a span,
+  .bottom-nav button span {
+    display: block;
+    min-width: 0;
+    max-width: 100%;
+    overflow: visible;
+    text-align: center;
+    white-space: nowrap;
   }
 
   .bottom-nav a.active {
@@ -1126,6 +1140,17 @@
 
   .bottom-nav a:active {
     background: rgba(34, 211, 238, 0.14);
+  }
+
+  .bottom-nav button {
+    padding: 0;
+    border: 0;
+    background: transparent;
+    cursor: pointer;
+  }
+
+  .bottom-nav button:active {
+    background: rgba(139, 92, 246, 0.14);
   }
 
   .bottom-nav .nav-arrow {
@@ -1148,6 +1173,7 @@
 
   .hero-section {
     min-height: auto;
+    overflow: visible;
   }
 
   .hero-image img {
@@ -1207,6 +1233,7 @@
   .planner {
     width: 100%;
     padding: 18px;
+    z-index: 3;
   }
 
   .planner h2 {
@@ -1251,6 +1278,7 @@
   }
 
   .quick-destination-button {
+    min-height: 64px;
     padding: 12px 10px;
     gap: 8px;
   }
@@ -1307,6 +1335,7 @@
   .transport-copy p {
     min-height: 47px;
     font-size: 11px;
+    line-height: 1.45;
   }
 
   .transport-copy .tiny-label {
@@ -1532,6 +1561,12 @@
 }
 
 @media (max-width: 479px) {
+  .bottom-nav a,
+  .bottom-nav button {
+    gap: 2px;
+    font-size: 0.6875rem;
+  }
+
   .quick-heading {
     gap: 10px;
   }
@@ -1698,6 +1733,15 @@
 }
 
 @media (min-width: 1024px) {
+  .eyebrow,
+  .tiny-label,
+  .field-label,
+  .tiny-live,
+  .network-disclaimer {
+    font-size: var(--text-xs);
+    letter-spacing: 0.1em;
+  }
+
   .desktop-nav a {
     font-size: var(--text-sm);
   }
@@ -1733,6 +1777,10 @@
     font-size: var(--text-xs) !important;
   }
 
+  .planner-footnote {
+    line-height: 1.4;
+  }
+
   .location-shortcut,
   .walking-preference {
     font-size: var(--text-sm);
@@ -1759,6 +1807,10 @@
   .network-grid strong,
   .network-grid small {
     font-size: var(--text-xs);
+  }
+
+  .transport-copy p {
+    line-height: 1.55;
   }
 
   .assistant-card h2,
@@ -1805,6 +1857,10 @@
   .option-metrics > span,
   .mode-chain {
     font-size: var(--text-xs);
+  }
+
+  .option-bottom .badge {
+    letter-spacing: 0.02em;
   }
 
   .journey-detail {
@@ -1859,6 +1915,13 @@
 
   .map-legend,
   .map-controls button {
+    font-size: var(--text-xs);
+  }
+
+  .tracking-card-top .eyebrow,
+  .tracking-destination span:first-child,
+  .tracking-hero .tiny-label,
+  .map-powered {
     font-size: var(--text-xs);
   }
 }
