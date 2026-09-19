@@ -9,7 +9,6 @@ import {
   Armchair,
   Leaf,
   Orbit,
-  ArrowUpRight,
 } from "lucide-react";
 const icons = {
   rail: TrainFront,
@@ -56,7 +55,6 @@ export function TransportModeCard({ mode }) {
       <div className="transport-art">
         <ModeIcon mode={mode.id} size={64} />
         <span className="orbit" />
-        <ArrowUpRight className="transport-arrow" size={18} />
       </div>
       <div className="transport-copy">
         <span className="tiny-label">AUTONOMOUS SYSTEM</span>

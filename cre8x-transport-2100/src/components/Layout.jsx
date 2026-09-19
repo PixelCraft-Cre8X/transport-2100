@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { NavLink, Outlet, useLocation } from "react-router-dom";
 import {
-  ArrowUpRight,
   Compass,
   Globe2,
   Map,
@@ -45,13 +44,11 @@ function Navigation({ mobile = false, search, onOpenAI }) {
         >
           <Icon size={20} strokeWidth={1.7} />
           <span>{label}</span>
-          {!mobile && <ArrowUpRight className="nav-arrow" size={15} />}
         </NavLink>
       ))}
       <button className="ai-nav-button" type="button" onClick={onOpenAI}>
         <Sparkles size={18} strokeWidth={1.7} />
         <span>{mobile ? "AI" : "Journey AI"}</span>
-        {!mobile && <ArrowUpRight className="nav-arrow" size={15} />}
       </button>
     </nav>
   );
