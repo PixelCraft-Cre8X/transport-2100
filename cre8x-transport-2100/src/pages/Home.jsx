@@ -94,7 +94,7 @@ export default function Home() {
           {quickDestinations.map((name) => (
             <Link
               key={name}
-              className="quick-destination-button"
+              className="quick-destination-button glass-card"
               to={`/journey?${journeyQuery("Maharagama", name)}`}
             >
               <span className="quick-destination-icon">
@@ -122,7 +122,7 @@ export default function Home() {
       </section>
 
       <div className="home-bottom">
-        <section className="assistant-card">
+        <section className="assistant-card glass-panel">
           <div className="assistant-orb" aria-hidden="true">
             <ModeIcon mode="sparkles" size={27} />
           </div>
@@ -135,7 +135,7 @@ export default function Home() {
           </button>
         </section>
 
-        <section className="network-panel" aria-labelledby="network-status-title">
+        <section className="network-panel glass-panel" aria-labelledby="network-status-title">
           <div className="network-heading">
             <h2 id="network-status-title">Network status</h2>
             <span className="tiny-live">ALL SYSTEMS ONLINE</span>
@@ -173,7 +173,7 @@ function QuickDestinationEditor({
   return (
     <div className="modal-backdrop" onClick={onCancel}>
       <section
-        className="destination-editor"
+        className="destination-editor glass-modal"
         role="dialog"
         aria-modal="true"
         aria-labelledby="destination-editor-title"

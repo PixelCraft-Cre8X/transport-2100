@@ -25,7 +25,7 @@ export default function JourneyPlannerCard() {
     navigate(`/journey?${journeyQuery(from, to, "recommended", walking)}`);
   }
   return (
-    <form className="planner" onSubmit={submit}>
+    <form className="planner glass-panel" onSubmit={submit}>
       <div className="planner-heading">
         <span className="eyebrow">LET’S GET YOU THERE</span>
         <span className="tiny-live">

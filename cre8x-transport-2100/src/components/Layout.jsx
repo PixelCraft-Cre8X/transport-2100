@@ -34,7 +34,7 @@ function Brand() {
 function Navigation({ mobile = false, search, onOpenAI }) {
   return (
     <nav
-      className={mobile ? "bottom-nav" : "desktop-nav"}
+      className={mobile ? "bottom-nav glass-nav" : "desktop-nav"}
       aria-label={mobile ? "Mobile navigation" : "Main navigation"}
     >
       {links.map(({ to, label, icon: Icon }) => (
@@ -59,7 +59,7 @@ function Navigation({ mobile = false, search, onOpenAI }) {
 
 function Header({ search, pathname, onOpenAI }) {
   return (
-    <header className="site-header">
+    <header className="site-header glass-nav">
       <div className="header-inner">
         <Brand />
         <Navigation search={search} onOpenAI={onOpenAI} />

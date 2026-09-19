@@ -79,12 +79,12 @@ export default function Tracking() {
             selected={selected}
             progress={progress}
           />
-          <div className="map-status-pill">
+          <div className="map-status-pill glass-card">
             <span className="status-dot" /> Route updating <span>·</span> last
             synced just now
           </div>
         </section>
-        <aside className="tracking-card">
+        <aside className="tracking-card glass-panel">
           <div className="tracking-card-top">
             <span className="eyebrow">YOUR JOURNEY · LIVE</span>
             <button
@@ -171,7 +171,7 @@ export default function Tracking() {
           </div>
           <div className="alert-grid">
             {smartAlerts.map((alert) => (
-              <div className="smart-alert" key={alert.mode}>
+              <div className="smart-alert glass-card" key={alert.mode}>
                 <span className={`alert-icon ${alert.mode}`}>
                   <ModeIcon mode={alert.mode} size={18} />
                 </span>
@@ -186,7 +186,7 @@ export default function Tracking() {
         </div>
         <div className="tracking-side-info">
           <SmartRoadPanel />
-          <div className="system-stats">
+          <div className="system-stats glass-card">
             <div>
               <ShieldCheck size={18} />
               <span>

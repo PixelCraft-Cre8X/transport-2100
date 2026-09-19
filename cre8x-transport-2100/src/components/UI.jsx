@@ -49,7 +49,7 @@ const transportCardDescriptions = {
 export function TransportModeCard({ mode }) {
   return (
     <article
-      className={`transport-card ${mode.color}`}
+      className={`transport-card glass-card ${mode.color}`}
     >
       <div className="transport-art">
         <ModeIcon mode={mode.id} size={64} />

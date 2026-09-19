@@ -81,7 +81,7 @@ export default function Journey() {
             {options.map((option) => (
               <button
                 key={option.id}
-                className={`route-option ${selected.id === option.id ? "selected" : ""}`}
+                className={`route-option glass-card ${selected.id === option.id ? "selected" : ""}`}
                 aria-pressed={selected.id === option.id}
                 onClick={() =>
                   setParams(
@@ -135,7 +135,7 @@ export default function Journey() {
             ))}
           </div>
         </section>
-        <section className="journey-detail" aria-label="Selected route details">
+        <section className="journey-detail glass-panel" aria-label="Selected route details">
           <div className="detail-heading">
             <span className="eyebrow">YOUR JOURNEY AT A GLANCE</span>
             <Badge>{selected.label}</Badge>
@@ -163,7 +163,7 @@ export default function Journey() {
           </div>
           <div className="preview-map">
             <MapPanel from={from} to={to} selected={selected} compact />
-            <Link to={`/tracking?${query}`} className="map-preview-link">
+            <Link to={`/tracking?${query}`} className="map-preview-link glass-card">
               Explore route <ArrowUpRight size={15} />
             </Link>
           </div>

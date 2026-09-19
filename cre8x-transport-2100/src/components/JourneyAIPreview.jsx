@@ -21,7 +21,7 @@ export default function JourneyAIPreview({ open, onClose }) {
   return (
     <div className="modal-backdrop" onClick={onClose}>
       <section
-        className="assistant-dialog journey-ai-dialog"
+        className="assistant-dialog journey-ai-dialog glass-modal"
         role="dialog"
         aria-modal="true"
         aria-labelledby="journey-ai-title"
