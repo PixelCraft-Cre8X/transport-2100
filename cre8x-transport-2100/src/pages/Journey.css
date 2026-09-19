@@ -33,7 +33,7 @@
   flex-wrap: wrap;
   align-items: center;
   gap: 0.3em 0.35em;
-  margin: 14px 0 10px;
+  margin: 14px 0 0;
   font-size: clamp(2rem, 9vw, 2.6rem);
   font-weight: 700;
   line-height: 1.1;
@@ -44,11 +44,6 @@
   width: 0.55em;
   height: 0.55em;
   color: var(--jm-cyan);
-}
-
-.jm-heading p:last-child {
-  color: #a4b4c4;
-  font-size: var(--text-md);
 }
 
 /* Toolbar */
@@ -119,12 +114,6 @@
 .jm-options legend h2 {
   font-size: var(--text-lg);
   font-weight: 700;
-}
-
-.jm-options legend p {
-  margin-top: 6px;
-  color: var(--jm-muted);
-  font-size: var(--text-sm);
 }
 
 .jm-route {

@@ -176,15 +176,15 @@
 /* Responsive layout: desktop header, tablet compression, mobile app navigation. */
 @media (min-width: 1024px) {
   .inner-page,
-  .tracking-page {
+  .tk-page {
     max-width: none;
     width: 100%;
   }
 
   .jm-page > .jm-layout,
-  .tracking-page > .tracking-header,
-  .tracking-page > .tracking-layout,
-  .tracking-page > .tracking-lower {
+  .tk-page > .tk-header,
+  .tk-page > .tk-layout,
+  .tk-page > .tk-lower {
     width: 100%;
     max-width: calc(1420px - 12vw);
     margin-right: auto;
