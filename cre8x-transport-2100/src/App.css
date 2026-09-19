@@ -978,25 +978,41 @@
   }
 
   .location-shortcut {
-    font-size: 0.8125rem;
+    font-size: var(--text-sm);
   }
 
   .location-shortcut span,
-  .planner-footnote,
   .tiny-label {
     font-size: 0.6875rem;
   }
 
+  .location-shortcut span {
+    font-size: 0.75rem;
+  }
+
+  .planner-footnote {
+    font-size: 0.8125rem !important;
+  }
+
   .quick-destination-copy small,
   .mode-status,
-  .network-grid small {
-    font-size: var(--text-xs);
+  .network-grid small,
+  .transport-copy p,
+  .assistant-card p {
+    font-size: 0.8125rem;
+  }
+
+  .network-grid strong,
+  .smart-road strong,
+  .smart-alert strong,
+  .system-stats strong {
+    font-size: 0.875rem;
   }
 
   .timeline-title span,
   .route-timeline li p,
   .smart-road p,
   .system-stats small {
-    font-size: var(--text-xs);
+    font-size: 0.875rem;
   }
 }
