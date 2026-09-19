@@ -89,7 +89,7 @@
 
 .tk-stage {
   position: relative;
-  height: 520px;
+  height: 460px;
 }
 
 .tk-stage::before {
@@ -559,6 +559,55 @@
   color: #4ade80;
 }
 
+/* Below the overlay layout the side cards stay compact. */
+@media (max-width: 1319px) {
+  .tk-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px 18px;
+  }
+
+  .tk-side-card h2,
+  .tk-layers-toggle {
+    margin-bottom: 12px;
+  }
+
+  .tk-layers-card .tk-layers-toggle[aria-expanded="false"] {
+    margin-bottom: 0;
+  }
+
+  .tk-green .tk-green-icon {
+    width: 44px;
+    height: 44px;
+  }
+}
+
+.tk-layers-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.tk-layers-toggle svg {
+  transition: transform 0.2s;
+}
+
+.tk-layers-toggle[aria-expanded="true"] svg {
+  transform: rotate(180deg);
+}
+
+.tk-layers-toggle:focus-visible {
+  outline: 2px solid var(--cyan);
+  outline-offset: 3px;
+}
+
 /* Side panel */
 
 .tk-panel {
@@ -971,6 +1020,11 @@
 
   .tk-stats dd {
     font-size: 1.125rem;
+  }
+
+  .tk-panel-top .eyebrow {
+    font-size: 0.75rem;
+    letter-spacing: 0.1em;
   }
 }
 

@@ -104,16 +104,19 @@
   border: 0;
 }
 
-.jm-options legend {
-  display: block;
-  width: 100%;
+.jm-choices > h2 {
   margin-bottom: 14px;
-  padding: 0;
-}
-
-.jm-options legend h2 {
   font-size: var(--text-lg);
   font-weight: 700;
+}
+
+.jm-visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
 }
 
 .jm-route {
@@ -276,6 +279,10 @@
   color: #d3deea;
   font-size: var(--text-sm);
   font-weight: 400;
+}
+
+.jm-short {
+  display: none;
 }
 
 .jm-metric > small {
@@ -843,9 +850,128 @@
   }
 }
 
+/* Below the two-column layout: map first, then the routes, then the details. */
+@media (max-width: 1023px) {
+  .jm-layout {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+  }
+
+  .jm-left,
+  .jm-right {
+    display: contents;
+  }
+
+  .jm-page .back-link {
+    order: 0;
+  }
+
+  .jm-heading {
+    order: 1;
+  }
+
+  .jm-toolbar {
+    order: 2;
+    margin: 22px 0 18px;
+  }
+
+  .jm-map {
+    order: 3;
+  }
+
+  .jm-choices {
+    order: 4;
+    margin-top: 24px;
+  }
+
+  .jm-details {
+    order: 5;
+    margin-top: 24px;
+  }
+}
+
+/* Phones: the routes become a swipeable row so the map stays in view. */
+@media (max-width: 767px) {
+  .jm-map {
+    height: 340px;
+  }
+
+  .jm-options {
+    position: relative;
+    display: flex;
+    gap: 12px;
+    margin-inline: -20px;
+    padding: 6px 20px 16px;
+    overflow-x: auto;
+    scroll-padding-inline: 20px;
+    scroll-snap-type: x mandatory;
+    scrollbar-width: none;
+  }
+
+  .jm-options::-webkit-scrollbar {
+    display: none;
+  }
+
+  .jm-route {
+    flex: 0 0 min(86%, 340px);
+    scroll-snap-align: center;
+  }
+}
+
+@media (max-width: 399px) {
+  .jm-view {
+    display: none;
+  }
+
+  .jm-controls button {
+    width: 34px;
+    height: 34px;
+  }
+
+  .jm-controls {
+    gap: 4px;
+  }
+}
+
 @media (max-width: 479px) {
   .jm-page {
     padding-inline: 16px;
+  }
+
+  .jm-route-metrics {
+    grid-template-columns: repeat(3, auto);
+    justify-content: space-between;
+  }
+
+  .jm-route-foot {
+    flex-wrap: wrap;
+  }
+
+  .jm-link {
+    white-space: nowrap;
+  }
+
+  .jm-long {
+    display: none;
+  }
+
+  .jm-short {
+    display: inline;
+  }
+
+  .jm-save {
+    flex: 1 1 100%;
+    justify-content: center;
+    min-height: 48px;
+    border: 1px solid var(--jm-line);
+    border-radius: 10px;
+  }
+
+  .jm-options {
+    margin-inline: -16px;
+    padding-inline: 16px;
+    scroll-padding-inline: 16px;
   }
 
   .jm-route {
