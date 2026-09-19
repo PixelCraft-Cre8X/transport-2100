@@ -1172,7 +1172,7 @@
   }
 
   .hero-section {
-    min-height: auto;
+    min-height: calc(100svh - 60px);
     overflow: visible;
   }
 
@@ -1557,6 +1557,30 @@
 
   .map-powered {
     font-size: 7px;
+  }
+}
+
+@media (min-width: 1024px) {
+  .hero-section {
+    min-height: clamp(430px, calc(100svh - 300px), 570px);
+  }
+
+  .hero-layout {
+    padding-top: clamp(30px, 6vh, 64px);
+    padding-bottom: clamp(30px, 6vh, 64px);
+  }
+
+  .quick-destinations {
+    padding-top: 24px;
+    padding-bottom: 28px;
+  }
+
+  .quick-heading {
+    margin-bottom: 14px;
+  }
+
+  .quick-destination-button {
+    padding: 12px;
   }
 }
 
