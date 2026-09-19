@@ -1,44 +1,60 @@
+import airportImage from "../assets/airport-2100.png";
+import colomboFortImage from "../assets/colombo-fort-2100.png";
+import galleImage from "../assets/galle-2100.png";
+import kalutaraImage from "../assets/kalutara-2100.png";
+import kandyImage from "../assets/kandy-2100.png";
+import maharagamaImage from "../assets/maharagama-2100.png";
+import makumburaImage from "../assets/makumbura-2100.png";
+import portCityImage from "../assets/port-city-2100.png";
+
 export const locations = [
   {
     name: "Maharagama",
     coordinates: [79.9249, 6.848],
     tagline: "A busy junction town on the road to the southern coast.",
+    image: maharagamaImage,
   },
   {
     name: "Galle",
     coordinates: [80.217, 6.032],
     tagline: "Explore a city where heritage meets tomorrow.",
-    landmark: "lighthouse",
+    image: galleImage,
   },
   {
     name: "Colombo Fort",
     coordinates: [79.85, 6.934],
     tagline: "Where the old harbour district meets the new skyline.",
+    image: colomboFortImage,
   },
   {
     name: "Kandy",
     coordinates: [80.633, 7.291],
     tagline: "The hill capital, wrapped in mist and living tradition.",
+    image: kandyImage,
   },
   {
     name: "Airport",
     coordinates: [79.885, 7.18],
     tagline: "Your gateway to the island, one hop from every hub.",
+    image: airportImage,
   },
   {
     name: "Port City",
     coordinates: [79.837, 6.941],
     tagline: "A city built on the sea, designed for the next century.",
+    image: portCityImage,
   },
   {
     name: "Makumbura",
     coordinates: [79.968, 6.839],
     tagline: "The SkyRail interchange where the south begins.",
+    image: makumburaImage,
   },
   {
     name: "Kalutara",
     coordinates: [79.96, 6.585],
     tagline: "River, beach and temple on the doorstep of the south.",
+    image: kalutaraImage,
   },
 ];
 
