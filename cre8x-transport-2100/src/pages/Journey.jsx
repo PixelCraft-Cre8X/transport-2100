@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import {
   ArrowLeft,
@@ -29,14 +29,23 @@ function departureDate() {
   return `${weekday}, ${day.getDate()} ${month}`;
 }
 
-function Metric({ value, unit, label }) {
+function Metric({ value, unit, label, shortLabel }) {
   return (
     <span className="jm-metric">
       <strong>
         {value}
         {unit && <small> {unit}</small>}
       </strong>
-      <small>{label}</small>
+      <small>
+        {shortLabel ? (
+          <>
+            <span className="jm-long">{label}</span>
+            <span className="jm-short">{shortLabel}</span>
+          </>
+        ) : (
+          label
+        )}
+      </small>
     </span>
   );
 }
@@ -53,6 +62,7 @@ export default function Journey() {
   const steps = withStartTimes(selected.segments);
   const query = journeyQuery(from.name, to.name, selected.id, walking);
   const detailsRef = useRef(null);
+  const optionsRef = useRef(null);
   const [saved, setSaved] = useState(false);
 
   const choose = (style) =>
@@ -60,10 +70,25 @@ export default function Journey() {
   const showDetails = (style) => {
     choose(style);
     if (window.matchMedia("(max-width: 1023px)").matches) {
-      detailsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+      detailsRef.current?.scrollIntoView({
+        behavior: "smooth",
+        block: "start",
+      });
     }
   };
   const includeWalking = walking === "include";
+
+  // On phones the routes sit in a sideways carousel; keep the chosen one centred
+  // (scrolling the carousel itself, never the page).
+  useEffect(() => {
+    const list = optionsRef.current;
+    const card = list?.querySelector(".jm-route.selected");
+    if (!card || list.scrollWidth <= list.clientWidth) return;
+    list.scrollTo({
+      left: card.offsetLeft - (list.clientWidth - card.clientWidth) / 2,
+      behavior: "smooth",
+    });
+  }, [selected.id]);
 
   return (
     <div className="inner-page jm-page page-enter">
@@ -105,78 +130,85 @@ export default function Journey() {
             </span>
           </div>
 
-          <fieldset className="jm-options">
-            <legend>
-              <h2>Select your journey</h2>
-            </legend>
-            {routes.map((option) => {
-              const isSelected = selected.id === option.id;
-              const chain = option.segments.filter(
-                (s, i, all) => !(s.mode === "walk" && i === all.length - 1),
-              );
-              return (
-                <article
-                  key={option.id}
-                  className={`jm-route ${option.id} ${isSelected ? "selected" : ""}`}
-                >
-                  <label className="jm-route-pick">
-                    <input
-                      type="radio"
-                      name="journey-style"
-                      value={option.id}
-                      checked={isSelected}
-                      onChange={() => choose(option.id)}
-                    />
-                    <span className="jm-route-head">
-                      <span className="jm-route-icon">
-                        <ModeIcon mode={option.icon} size={24} />
-                      </span>
-                      <span className="jm-route-title">
-                        <strong>{option.label}</strong>
-                        <small>{option.description}</small>
-                      </span>
-                      {option.highlight && (
-                        <span className="jm-highlight">{option.highlight}</span>
-                      )}
-                      <span className="jm-radio" aria-hidden="true" />
-                    </span>
-                    <span className="jm-route-metrics">
-                      <Metric
-                        value={option.duration}
-                        unit="min"
-                        label="Total travel time"
+          <section className="jm-choices" aria-labelledby="jm-choices-title">
+            <h2 id="jm-choices-title">Select your journey</h2>
+            <fieldset className="jm-options" ref={optionsRef}>
+              <legend className="jm-visually-hidden">Journey options</legend>
+              {routes.map((option) => {
+                const isSelected = selected.id === option.id;
+                const chain = option.segments.filter(
+                  (s, i, all) => !(s.mode === "walk" && i === all.length - 1),
+                );
+                return (
+                  <article
+                    key={option.id}
+                    className={`jm-route ${option.id} ${isSelected ? "selected" : ""}`}
+                  >
+                    <label className="jm-route-pick">
+                      <input
+                        type="radio"
+                        name="journey-style"
+                        value={option.id}
+                        checked={isSelected}
+                        onChange={() => choose(option.id)}
                       />
-                      <Metric
-                        value={formatFare(option.cost)}
-                        label="Estimated fare"
-                      />
-                      <Metric
-                        value={option.transfers}
-                        label={transferLabel(option.transfers)}
-                      />
-                    </span>
-                  </label>
-                  <div className="jm-route-foot">
-                    <span className="jm-chain" aria-label="Modes of travel">
-                      {chain.map((s, i) => (
-                        <span key={`${s.mode}-${i}`}>
-                          {i > 0 && <ArrowRight size={14} aria-hidden="true" />}
-                          <ModeIcon mode={s.mode} size={22} />
+                      <span className="jm-route-head">
+                        <span className="jm-route-icon">
+                          <ModeIcon mode={option.icon} size={24} />
                         </span>
-                      ))}
-                    </span>
-                    <button
-                      type="button"
-                      className="jm-link"
-                      onClick={() => showDetails(option.id)}
-                    >
-                      View details <ArrowRight size={16} />
-                    </button>
-                  </div>
-                </article>
-              );
-            })}
-          </fieldset>
+                        <span className="jm-route-title">
+                          <strong>{option.label}</strong>
+                          <small>{option.description}</small>
+                        </span>
+                        {option.highlight && (
+                          <span className="jm-highlight">
+                            {option.highlight}
+                          </span>
+                        )}
+                        <span className="jm-radio" aria-hidden="true" />
+                      </span>
+                      <span className="jm-route-metrics">
+                        <Metric
+                          value={option.duration}
+                          unit="min"
+                          label="Total travel time"
+                          shortLabel="Travel time"
+                        />
+                        <Metric
+                          value={formatFare(option.cost)}
+                          label="Estimated fare"
+                          shortLabel="Est. fare"
+                        />
+                        <Metric
+                          value={option.transfers}
+                          label={transferLabel(option.transfers)}
+                        />
+                      </span>
+                    </label>
+                    <div className="jm-route-foot">
+                      <span className="jm-chain" aria-label="Modes of travel">
+                        {chain.map((s, i) => (
+                          <span key={`${s.mode}-${i}`}>
+                            {i > 0 && (
+                              <ArrowRight size={14} aria-hidden="true" />
+                            )}
+                            <ModeIcon mode={s.mode} size={22} />
+                          </span>
+                        ))}
+                      </span>
+                      <button
+                        type="button"
+                        className="jm-link"
+                        onClick={() => showDetails(option.id)}
+                      >
+                        View details <ArrowRight size={16} />
+                      </button>
+                    </div>
+                  </article>
+                );
+              })}
+            </fieldset>
+          </section>
         </div>
 
         <div className="jm-right">
@@ -191,8 +223,13 @@ export default function Journey() {
                 value={selected.duration}
                 unit="min"
                 label="Total travel time"
+                shortLabel="Travel time"
               />
-              <Metric value={formatFare(selected.cost)} label="Estimated fare" />
+              <Metric
+                value={formatFare(selected.cost)}
+                label="Estimated fare"
+                shortLabel="Est. fare"
+              />
               <Metric
                 value={selected.transfers}
                 label={transferLabel(selected.transfers)}
@@ -228,7 +265,13 @@ export default function Journey() {
                         <strong>{step.name}</strong>
                         <small>{step.minutes} min</small>
                       </span>
-                      <span className="jm-step-status">{step.status}</span>
+                      <span
+                        className={`jm-step-status ${step.delayMinutes > 0 ? "delayed" : ""}`}
+                      >
+                        {step.delayMinutes > 0
+                          ? `Delayed +${step.delayMinutes} min`
+                          : step.status}
+                      </span>
                     </li>
                   );
                 })}

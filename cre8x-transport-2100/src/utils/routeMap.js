@@ -42,7 +42,10 @@ function measure(points) {
   for (let i = 1; i < points.length; i += 1) {
     lengths.push(
       lengths[i - 1] +
-        Math.hypot(points[i][0] - points[i - 1][0], points[i][1] - points[i - 1][1]),
+        Math.hypot(
+          points[i][0] - points[i - 1][0],
+          points[i][1] - points[i - 1][1],
+        ),
     );
   }
   return lengths;
@@ -65,7 +68,11 @@ function slice(points, lengths, from, to) {
     const f = lengths[i] / lengths[lengths.length - 1];
     return f > from && f < to;
   });
-  return [pointAt(points, lengths, from), ...inner, pointAt(points, lengths, to)];
+  return [
+    pointAt(points, lengths, from),
+    ...inner,
+    pointAt(points, lengths, to),
+  ];
 }
 
 const overlaps = (a, b) =>
@@ -78,7 +85,8 @@ const overlaps = (a, b) =>
  * should be fitted into. `blocked` rects keep place names clear of overlays.
  * With `callout` ({ width, height, dx }) it also returns label anchors for the
  * start, each ride, each transfer and the destination. `progress` (0..1) adds a
- * vehicle on the path, and `follow` keeps the view centred on it.
+ * vehicle on the path, and `follow` keeps the view centred on it. `zoom` and
+ * `pan` (pixels) come from the map's zoom/drag state.
  */
 export function buildRouteMap({
   from,
@@ -88,6 +96,7 @@ export function buildRouteMap({
   h,
   box,
   zoom = 1,
+  pan = [0, 0],
   progress = null,
   follow = false,
   towns = [],
@@ -102,7 +111,11 @@ export function buildRouteMap({
     const dx = b[0] - a[0];
     const dy = b[1] - a[1];
     const bulge = dy < 0 ? 0.12 : -0.12;
-    geo = [a, [(a[0] + b[0]) / 2 - dy * bulge, (a[1] + b[1]) / 2 + dx * bulge], b];
+    geo = [
+      a,
+      [(a[0] + b[0]) / 2 - dy * bulge, (a[1] + b[1]) / 2 + dx * bulge],
+      b,
+    ];
   }
 
   const lons = geo.map((p) => p[0]);
@@ -128,8 +141,8 @@ export function buildRouteMap({
   const vehicle0 = progress == null ? null : pointAt(path0, lengths, progress);
   const focus = follow && vehicle0 ? vehicle0 : [w / 2, h / 2];
   const view = ([x, y]) => [
-    w / 2 + (x - focus[0]) * zoom,
-    h / 2 + (y - focus[1]) * zoom,
+    w / 2 + (x - focus[0]) * zoom + pan[0],
+    h / 2 + (y - focus[1]) * zoom + pan[1],
   ];
   const project = (coordinates) => view(base(coordinates));
 
@@ -164,7 +177,14 @@ export function buildRouteMap({
       ...nodes.map((part) => ({ kind: "ride", segment: part, xy: part.mid })),
       ...parts.flatMap((part, i) =>
         i > 0 && part.mode !== "walk" && parts[i - 1].mode !== "walk"
-          ? [{ kind: "transfer", segment: part, previous: parts[i - 1], xy: part.points[0] }]
+          ? [
+              {
+                kind: "transfer",
+                segment: part,
+                previous: parts[i - 1],
+                xy: part.points[0],
+              },
+            ]
           : [],
       ),
       { kind: "end", segment: parts[parts.length - 1], xy: end },
@@ -175,11 +195,18 @@ export function buildRouteMap({
     // Nudge labels down so neighbouring cards never sit on top of each other.
     items.forEach((c, i) => {
       items.slice(0, i).forEach((p) => {
-        if (overlaps(c.rect, { ...p.rect, y0: p.rect.y0 - 6, y1: p.rect.y1 + 6 })) {
+        if (
+          overlaps(c.rect, { ...p.rect, y0: p.rect.y0 - 6, y1: p.rect.y1 + 6 })
+        ) {
           const shift = p.rect.y1 + 6 - c.rect.y0;
           c.rect = { ...c.rect, y0: c.rect.y0 + shift, y1: c.rect.y1 + shift };
         }
       });
+    });
+    // Keep every card inside the map, even where the route runs near the right edge.
+    items.forEach((c) => {
+      const x0 = Math.max(6, Math.min(c.rect.x0, w - 6 - width));
+      c.rect = { ...c.rect, x0, x1: x0 + width };
     });
     callouts = items;
   }
@@ -193,7 +220,9 @@ export function buildRouteMap({
       return {
         ...t,
         xy,
-        nearNode: nodes.some((n) => Math.hypot(n.mid[0] - xy[0], n.mid[1] - xy[1]) < 60),
+        nearNode: nodes.some(
+          (n) => Math.hypot(n.mid[0] - xy[0], n.mid[1] - xy[1]) < 60,
+        ),
       };
     })
     .filter(
@@ -205,12 +234,28 @@ export function buildRouteMap({
         anchors.every((a) => Math.hypot(a[0] - x, a[1] - y) > 30),
     )
     .filter((t) => {
-      const width = (t.nearNode && t.side !== "right" ? 34 : 12) + t.name.length * CHAR_WIDTH;
+      const width =
+        (t.nearNode && t.side !== "right" ? 34 : 12) +
+        t.name.length * CHAR_WIDTH;
       const rect =
         t.side === "right"
-          ? { x0: t.xy[0], y0: t.xy[1] - 10, x1: t.xy[0] + width, y1: t.xy[1] + 8 }
-          : { x0: t.xy[0] - width, y0: t.xy[1] - 10, x1: t.xy[0], y1: t.xy[1] + 8 };
-      return rect.x0 > 6 && rect.x1 < w - 6 && !reserved.some((r) => overlaps(rect, r));
+          ? {
+              x0: t.xy[0],
+              y0: t.xy[1] - 10,
+              x1: t.xy[0] + width,
+              y1: t.xy[1] + 8,
+            }
+          : {
+              x0: t.xy[0] - width,
+              y0: t.xy[1] - 10,
+              x1: t.xy[0],
+              y1: t.xy[1] + 8,
+            };
+      return (
+        rect.x0 > 6 &&
+        rect.x1 < w - 6 &&
+        !reserved.some((r) => overlaps(rect, r))
+      );
     })
     .sort((a, b) => a.xy[1] - b.xy[1])
     .filter(
@@ -219,7 +264,8 @@ export function buildRouteMap({
           .slice(0, i)
           .some(
             (o) =>
-              Math.abs(o.xy[1] - t.xy[1]) < 24 && Math.abs(o.xy[0] - t.xy[0]) < 110,
+              Math.abs(o.xy[1] - t.xy[1]) < 24 &&
+              Math.abs(o.xy[0] - t.xy[0]) < 110,
           ),
     );
 

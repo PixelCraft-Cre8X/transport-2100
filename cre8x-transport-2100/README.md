@@ -15,6 +15,8 @@ npm run dev
 
 The production check is `npm run build`; linting is `npm run lint`.
 
+To preview on a phone, connect it to the same Wi-Fi as the computer and open the **Network** URL printed by Vite. The development server listens on port `5173` on the network; keep its terminal running. If that port is already in use, stop the earlier server before running `npm run dev` again. Mobile microphone testing requires trusted HTTPS; the local HTTP network URL supports layout and typed-request testing.
+
 ## Assets and map setup
 
 Hero artwork is loaded from the existing PNG assets in `src/assets/`. To replace it later, add `src/assets/images/hero-colombo-2100-desktop.jpg` and `src/assets/images/hero-colombo-2100-mobile.jpg`; `src/pages/Home.jsx` contains the replacement comments and fallback behavior.
@@ -57,7 +59,7 @@ Implementation files:
 ### Checks and manual phrases
 
 ```bash
-node --test tests/journeyAI.test.mjs
+node --test tests/*.test.mjs
 npm run build
 npm run lint
 ```
@@ -91,6 +93,21 @@ Keep the modal open and try this sequence:
 Also ask "How many transfers?", "How much walking?", "Which transport will I use?", "Is it step free?", and "Why did you choose this?". Questions should retain the selected route. "Is there a cheaper one?" only claims savings when the generated fare is actually lower. "Allow bus and rail" removes those exclusions explicitly.
 
 For clarification, try "I need a journey." followed by "Rathnapura."; "Take me to Atlantis" followed by "Matara"; or "Take me to Colombo Fort or Port City" followed by "Port City". Check View journey and Start tracking retain the recommendation's places, route and walking setting. Deny microphone access to check the text fallback.
+
+### Microphone troubleshooting
+
+Open the app on `http://localhost:5173` during development, or HTTPS when deployed. An HTTP address on another computer (for example, a LAN IP address) does not provide secure microphone access.
+
+If Journey AI reports blocked access in Chrome:
+
+1. Click the site controls beside the address bar, open **Site settings**, and set **Microphone** to **Allow**.
+2. On Windows 11, open **Settings > Privacy & security > Microphone**. Enable **Microphone access**, **Let apps access your microphone**, and **Let desktop apps access your microphone**.
+3. Open `chrome://settings/content/microphone`, select the correct input device, and check that sites can ask to use it.
+4. Reload the app, open Journey AI, allow access if prompted, then tap the microphone after the greeting.
+
+If no device is found, connect or enable a microphone. If the device cannot start, check the input device and close other apps that may be using it. Journey AI preserves the browser's failure category and checks again on reopening or retrying; the website cannot override browser or Windows privacy settings. A speech recognition connection error is separate from microphone access and requires checking the internet connection or the browser's recognition service. Typed requests remain available.
+
+See [Chrome microphone help](https://support.google.com/chrome/answer/2693767) and [Windows microphone permissions](https://support.microsoft.com/en-us/windows/privacy/turn-on-app-permissions-for-your-microphone-in-windows).
 
 ### Limits
 

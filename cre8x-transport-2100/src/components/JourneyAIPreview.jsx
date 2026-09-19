@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { formatFare, journeyQuery, readJourney } from "../data/journeys";
 import { createJourneyAIResponse } from "../utils/journeyAI";
+import { microphoneFailure, microphoneNotice } from "../utils/microphone";
 import {
   createJourneyConversation,
   handleJourneyRequest,
@@ -21,18 +22,17 @@ import { ModeIcon } from "./UI";
 
 const greeting =
   "Hi, where would you like to go? Tell me how I can help plan your journey.";
-const microphoneUnavailable =
-  "Microphone access is unavailable. You can still type your request.";
 const recognitionUnavailable =
   "Voice recognition is not supported in this browser. You can still type your request.";
 const speechErrors = {
-  "not-allowed": microphoneUnavailable,
-  "service-not-allowed": recognitionUnavailable,
-  "audio-capture": microphoneUnavailable,
+  "not-allowed": microphoneNotice("denied"),
+  "service-not-allowed":
+    "Your browser blocked the speech recognition service. Try a browser with voice support, such as Chrome, or type your request below.",
+  "audio-capture": microphoneNotice("not-readable"),
   "no-speech":
     "I didn't hear anything. Tap the microphone to try again, or type below.",
   network:
-    "Voice recognition couldn't connect. Try again or type your request.",
+    "Voice recognition couldn't connect to its service. Check your internet connection, then retry or type your request.",
   aborted: "Listening stopped. Tap to speak again or type below.",
 };
 const statusLabels = {
@@ -94,7 +94,7 @@ function JourneyAIDialog({
   const [notice, setNotice] = useState("");
   const dialogRef = useRef(null);
   const microphoneRef = useRef(null);
-  const inputRef = useRef(null);
+  const closeButtonRef = useRef(null);
   const recognitionRef = useRef(null);
   const utteranceRef = useRef(null);
   const startupRef = useRef(null);
@@ -125,11 +125,8 @@ function JourneyAIDialog({
       : response;
   const voiceNotice =
     notice ||
-    (permission !== "granted" && permission !== "requesting-permission"
-      ? microphoneUnavailable
-      : !Recognition
-        ? recognitionUnavailable
-        : "");
+    microphoneNotice(permission) ||
+    (!Recognition ? recognitionUnavailable : "");
   const stepFree = route?.segments
     .filter(({ mode }) => mode === "walk")
     .every(({ status }) => status === "Step-free path");
@@ -246,8 +243,9 @@ function JourneyAIDialog({
           speechErrors[event.error] ||
             "Voice recognition is unavailable. Try again or type below.",
         );
-        if (event.error === "not-allowed" || event.error === "audio-capture")
-          onMicrophoneUnavailable();
+        if (event.error === "not-allowed") onMicrophoneUnavailable("denied");
+        if (event.error === "audio-capture")
+          onMicrophoneUnavailable("not-readable");
       };
       recognition.onnomatch = () => {
         if (recognitionRef.current !== recognition) return;
@@ -267,10 +265,16 @@ function JourneyAIDialog({
         }
       };
       recognition.start();
-    } catch {
+    } catch (error) {
       releaseRecognition(recognitionRef);
       setStatus("voice-error");
-      setNotice("Voice recognition couldn't start. Try again or type below.");
+      const failure = microphoneFailure(error);
+      if (failure !== "unavailable") {
+        onMicrophoneUnavailable(failure);
+        setNotice(microphoneNotice(failure));
+      } else {
+        setNotice("Voice recognition couldn't start. Try again or type below.");
+      }
     }
   }
 
@@ -299,8 +303,7 @@ function JourneyAIDialog({
       if (activity !== activityRef.current) return;
       if (nextPermission !== "granted") {
         setStatus("voice-error");
-        setNotice(microphoneUnavailable);
-        inputRef.current?.focus();
+        setNotice(microphoneNotice(nextPermission));
         return;
       }
     }
@@ -345,13 +348,12 @@ function JourneyAIDialog({
     const previousFocus = returnFocusRef.current ?? document.activeElement;
     const previousOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
+    // Keep the full dialog visible; typing should only start when chosen.
     const focusTarget =
-      openingPermission === "granted" &&
-      microphoneRef.current &&
-      !microphoneRef.current.disabled
+      microphoneRef.current && !microphoneRef.current.disabled
         ? microphoneRef.current
-        : inputRef.current;
-    focusTarget?.focus();
+        : closeButtonRef.current;
+    focusTarget?.focus({ preventScroll: true });
     const backdrop = dialogRef.current.parentElement;
     const siblings = [...backdrop.parentElement.children]
       .filter((element) => element !== backdrop)
@@ -395,7 +397,7 @@ function JourneyAIDialog({
       });
       if (previousFocus?.isConnected) previousFocus.focus();
     };
-  }, [onClose, openingPermission, returnFocusRef]);
+  }, [onClose, returnFocusRef]);
 
   return (
     <div className="modal-backdrop journey-ai-backdrop" onClick={onClose}>
@@ -418,6 +420,7 @@ function JourneyAIDialog({
             <h2 id="journey-ai-title">Journey AI</h2>
           </div>
           <button
+            ref={closeButtonRef}
             className="journey-ai-close icon-button"
             type="button"
             aria-label="Close Journey AI"
@@ -613,7 +616,6 @@ function JourneyAIDialog({
               Type a journey request
             </label>
             <input
-              ref={inputRef}
               id="journey-ai-request"
               value={text}
               autoComplete="off"
