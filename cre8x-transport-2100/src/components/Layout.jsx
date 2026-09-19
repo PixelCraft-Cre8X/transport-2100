@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { NavLink, Outlet, useLocation } from "react-router-dom";
 import {
   ArrowUpRight,
@@ -31,7 +31,12 @@ function Brand() {
   );
 }
 
-function Navigation({ mobile = false, search, onOpenAI }) {
+function Navigation({
+  mobile = false,
+  search,
+  onOpenAI,
+  requestingMicrophone,
+}) {
   return (
     <nav
       className={mobile ? "bottom-nav glass-nav" : "desktop-nav"}
@@ -48,7 +53,13 @@ function Navigation({ mobile = false, search, onOpenAI }) {
           {!mobile && <ArrowUpRight className="nav-arrow" size={15} />}
         </NavLink>
       ))}
-      <button className="ai-nav-button" type="button" onClick={onOpenAI}>
+      <button
+        className="ai-nav-button"
+        type="button"
+        onClick={onOpenAI}
+        aria-busy={requestingMicrophone}
+        aria-haspopup="dialog"
+      >
         <Sparkles size={18} strokeWidth={1.7} />
         <span>{mobile ? "AI" : "Journey AI"}</span>
         {!mobile && <ArrowUpRight className="nav-arrow" size={15} />}
@@ -57,12 +68,18 @@ function Navigation({ mobile = false, search, onOpenAI }) {
   );
 }
 
-function Header({ search, pathname, onOpenAI }) {
+function Header({ search, pathname, onOpenAI, requestingMicrophone }) {
   return (
-    <header className={`site-header glass-nav${pathname === "/" ? " home-header" : ""}`}>
+    <header
+      className={`site-header glass-nav${pathname === "/" ? " home-header" : ""}`}
+    >
       <div className="header-inner">
         <Brand />
-        <Navigation search={search} onOpenAI={onOpenAI} />
+        <Navigation
+          search={search}
+          onOpenAI={onOpenAI}
+          requestingMicrophone={requestingMicrophone}
+        />
         <div className="header-meta">
           <span className="weather-meta">
             <Sun size={16} /> 28° <span>Colombo</span>
@@ -90,8 +107,74 @@ function Header({ search, pathname, onOpenAI }) {
 export default function Layout() {
   const { pathname, search } = useLocation();
   const [journeyAIOpen, setJourneyAIOpen] = useState(false);
-  const openJourneyAI = useCallback(() => setJourneyAIOpen(true), []);
-  const closeJourneyAI = useCallback(() => setJourneyAIOpen(false), []);
+  const [microphonePermission, setMicrophonePermission] = useState("unknown");
+  const permissionRequestRef = useRef(null);
+  const openingRef = useRef(0);
+  const returnFocusRef = useRef(null);
+  const mountedRef = useRef(false);
+
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+      openingRef.current += 1;
+    };
+  }, []);
+
+  const requestMicrophone = useCallback(() => {
+    if (microphonePermission === "granted") return Promise.resolve("granted");
+    if (permissionRequestRef.current) return permissionRequestRef.current;
+    if (!navigator.mediaDevices?.getUserMedia) {
+      setMicrophonePermission("unavailable");
+      return Promise.resolve("unavailable");
+    }
+    setMicrophonePermission("requesting-permission");
+    // Call synchronously in the AI/microphone click, before any await or effect.
+    let request;
+    try {
+      request = navigator.mediaDevices.getUserMedia({ audio: true });
+    } catch {
+      setMicrophonePermission("unavailable");
+      return Promise.resolve("unavailable");
+    }
+    const pending = Promise.resolve(request)
+      .then((stream) => {
+        stream.getTracks().forEach((track) => track.stop());
+        if (mountedRef.current) setMicrophonePermission("granted");
+        return "granted";
+      })
+      .catch(() => {
+        if (mountedRef.current) setMicrophonePermission("unavailable");
+        return "unavailable";
+      })
+      .finally(() => {
+        permissionRequestRef.current = null;
+      });
+    permissionRequestRef.current = pending;
+    return pending;
+  }, [microphonePermission]);
+
+  const openJourneyAI = useCallback(
+    (event) => {
+      if (permissionRequestRef.current || journeyAIOpen) return;
+      returnFocusRef.current = event?.currentTarget ?? document.activeElement;
+      const opening = ++openingRef.current;
+      requestMicrophone().then(() => {
+        if (mountedRef.current && opening === openingRef.current)
+          setJourneyAIOpen(true);
+      });
+    },
+    [journeyAIOpen, requestMicrophone],
+  );
+  const closeJourneyAI = useCallback(() => {
+    openingRef.current += 1;
+    setJourneyAIOpen(false);
+  }, []);
+  const microphoneUnavailable = useCallback(
+    () => setMicrophonePermission("unavailable"),
+    [],
+  );
+  const requestingMicrophone = microphonePermission === "requesting-permission";
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -109,6 +192,7 @@ export default function Layout() {
           search={search}
           pathname={pathname}
           onOpenAI={openJourneyAI}
+          requestingMicrophone={requestingMicrophone}
         />
 
         <main id="main-content" tabIndex={-1}>
@@ -125,8 +209,23 @@ export default function Layout() {
         </footer>
       </div>
 
-      <Navigation mobile search={search} onOpenAI={openJourneyAI} />
-      <JourneyAIPreview open={journeyAIOpen} onClose={closeJourneyAI} />
+      <Navigation
+        mobile
+        search={search}
+        onOpenAI={openJourneyAI}
+        requestingMicrophone={requestingMicrophone}
+      />
+      <span className="journey-ai-sr-only" role="status">
+        {requestingMicrophone ? "Requesting microphone permission…" : ""}
+      </span>
+      <JourneyAIPreview
+        open={journeyAIOpen}
+        onClose={closeJourneyAI}
+        permission={microphonePermission}
+        onRequestMicrophone={requestMicrophone}
+        onMicrophoneUnavailable={microphoneUnavailable}
+        returnFocusRef={returnFocusRef}
+      />
     </div>
   );
 }
