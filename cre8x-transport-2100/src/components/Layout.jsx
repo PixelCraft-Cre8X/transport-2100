@@ -101,7 +101,13 @@ export default function Layout() {
         Skip to content
       </a>
 
-      <div className="main-shell">
+      <div
+        className={`main-shell${
+          pathname === "/journey" || pathname === "/tracking"
+            ? " route-shell"
+            : ""
+        }`}
+      >
         <Header
           search={search}
           pathname={pathname}
