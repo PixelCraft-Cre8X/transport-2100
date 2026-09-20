@@ -61,6 +61,7 @@ Implementation files:
 - `src/data/journeys.js`: compatibility for aliases in existing journey URLs, including `to=Airport`; the route generator is unchanged.
 - `src/components/JourneyAIPreview.jsx`: connects voice/text submissions to conversation state. Existing permission, greeting, recognition, synthesis, route navigation, and keyboard behavior remain in place.
 - `src/utils/voiceSession.js`: voice lifecycle, audio exclusion, bounded silence retries, pause/resume/end, and cleanup; contains no journey parsing or ranking.
+- `src/utils/speechSynthesis.js`: synchronous Safari speech priming, cancellable voice readiness, and development-only audio diagnostics.
 - `src/pages/Home.jsx`: the airport shortcut uses the canonical name so the destination editor stays consistent.
 - `tests/journeyAI.test.mjs`: destination, language, conversation, constraint, geocoding-failure and route/navigation regression tests.
 - `tests/voiceSession.test.mjs`: controlled audio events and timers covering automatic turns, duplicate callbacks, silence, errors, typing, cancellation and cleanup.
@@ -106,6 +107,22 @@ For clarification, try "I need a journey." followed by "Galle."; "Take me to Atl
 For the hands-free check, open Journey AI and allow access, wait for the greeting to finish, then say “I want to go to Galle.”, “Make it fastest.”, “Don't use air taxi.” and “How much will it cost?” after each reply. The destination must stay Galle and the cost must match the current route. Do not press the microphone between turns. Wait for three silent turns, confirm it pauses, tap once to resume, then end and close the conversation. Verify no audio restarts. Reopen to check grant reuse; test voice followed by typed “make it cheaper” to check shared context.
 
 ### Microphone troubleshooting
+
+#### Safari first-open speech
+
+Journey AI primes speech synthesis synchronously in the opening click, before microphone permission is requested. A muted placeholder is immediately cancelled, so it does not duplicate the greeting. The temporary permission stream still stops every track before the dialog opens; recognition owns the conversation microphone.
+
+The automatic greeting checks `getVoices()` and, if needed, waits for `voiceschanged` for up to 600 ms. It still attempts browser-selected English speech when no voice list appears. Initial startup uses a cancellable microtask instead of a zero-delay timer, preserving React StrictMode cleanup. Recognition begins only after the greeting reports both `onstart` and `onend`, followed by the existing 200 ms audio gap.
+
+If the greeting errors, ends without starting, or does not start within two seconds of `speak()`, the session pauses with a non-blocking **Tap to hear Journey AI** button. That button speaks directly in its click handler, then resumes listening after the greeting ends. The microphone and typed input remain usable. Closing, ending, typing or starting another request cancels pending voice readiness and greeting checks. The button is absent when automatic speech succeeds.
+
+Development builds log concise `[JourneyAI]` events for the opening gesture and activation, permission resolution, priming, voice count, greeting attempt, utterance start/end/error, and recognition start. These diagnostics contain no passenger requests and are omitted from production builds.
+
+Device verification requires a real first permission flow on the HTTPS deployment: reset the site's microphone permission (or use a fresh origin), reload, open Journey AI, and allow access. Confirm one audible greeting, then listening and a spoken request. Close and reopen to confirm that the session grant is reused and the greeting still plays. Also check denial with typed input, a previously granted permission, and the recovery button if playback is blocked. Repeat normal voice turns on Chrome/Android and desktop Chrome/Edge. Automated tests simulate browser events; they do not verify audible iPhone playback.
+
+This workaround follows [WebKit's user-gesture restriction for speech](https://github.com/WebKit/WebKit/blob/main/Source/WebCore/Modules/speech/SpeechSynthesis.cpp) and the [`voiceschanged` lifecycle](https://developer.mozilla.org/en-US/docs/Web/API/SpeechSynthesis/voiceschanged_event).
+
+#### Browser permission settings
 
 Open the app on `http://localhost:5173` during development, or HTTPS when deployed. An HTTP address on another computer (for example, a LAN IP address) does not provide secure microphone access.
 

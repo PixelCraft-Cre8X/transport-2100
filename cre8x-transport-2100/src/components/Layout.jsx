@@ -14,6 +14,7 @@ import IntroScreen from "./IntroScreen";
 import JourneyAIPreview from "./JourneyAIPreview";
 import PageTransition from "./PageTransition";
 import { requestMicrophoneAccess } from "../utils/microphone";
+import { primeSpeechSynthesis, voiceDebug } from "../utils/speechSynthesis";
 
 const links = [
   { to: "/", label: "Discover", icon: Compass },
@@ -137,6 +138,7 @@ export default function Layout() {
     // Reuse this session's grant; capture/permission failures invalidate it below.
     const pending = requestMicrophoneAccess()
       .then((permission) => {
+        voiceDebug("microphone permission resolved", permission);
         microphonePermissionRef.current = permission;
         if (mountedRef.current) setMicrophonePermission(permission);
         return permission;
@@ -151,6 +153,10 @@ export default function Layout() {
   const openJourneyAI = useCallback(
     (event) => {
       if (permissionRequestRef.current || journeyAIOpen) return;
+      voiceDebug("Journey AI click", {
+        userActivation: navigator.userActivation?.isActive,
+      });
+      primeSpeechSynthesis();
       returnFocusRef.current = event?.currentTarget ?? document.activeElement;
       const opening = ++openingRef.current;
       requestMicrophone().then(() => {

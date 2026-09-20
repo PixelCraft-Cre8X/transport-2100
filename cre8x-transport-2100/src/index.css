@@ -1471,6 +1471,12 @@ main {
   font-size: 12px;
   line-height: 1.5;
 }
+.journey-ai-enable-voice {
+  grid-column: 1 / -1;
+  align-self: center;
+  justify-self: center;
+  min-height: 44px;
+}
 .journey-ai-examples {
   min-width: 0;
   margin-top: 16px;
