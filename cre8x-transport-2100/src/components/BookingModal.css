@@ -400,7 +400,7 @@
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 4px 14px;
+  padding: 12px 14px;
   border: 1px solid rgba(56, 130, 170, 0.45);
   border-radius: 12px;
   background: var(--bk-field);
@@ -412,17 +412,17 @@
   color: var(--bk-cyan);
 }
 
-.bk-vehicle .glass-select {
-  flex: 1;
-}
-
-.bk-vehicle .glass-select-trigger {
-  min-height: 42px;
+.bk-vehicle strong {
+  display: block;
   font-size: 1rem;
+  font-weight: 500;
 }
 
-.bk-vehicle .glass-select-menu {
-  min-width: 0;
+.bk-vehicle small {
+  display: block;
+  margin-top: 1px;
+  color: var(--bk-muted);
+  font-size: var(--text-xs);
 }
 
 .bk-seat-layout {
@@ -452,8 +452,33 @@
 
 .bk-seat-grid {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
+  gap: 10px;
+}
+
+.bk-seat-row {
+  display: grid;
+  gap: 8px;
+}
+
+/* Each vehicle type has its own cabin shape and seat size. */
+.bk-cabin.rail {
+  border-radius: 14px;
+}
+
+.bk-cabin.rail .bk-seat {
+  height: 44px;
+  font-size: var(--text-sm);
+}
+
+.bk-cabin.air {
+  max-width: 220px;
+  margin-inline: auto;
+  border-radius: 90px 90px 40px 40px / 70px 70px 30px 30px;
+}
+
+.bk-cabin.air .bk-cabin-front {
+  justify-content: center;
+  gap: 10px;
 }
 
 .bk-seat {
@@ -541,13 +566,15 @@
 .bk-selected output {
   display: grid;
   place-items: center;
-  width: 58px;
-  height: 52px;
+  min-width: 58px;
+  min-height: 52px;
+  padding: 6px 12px;
   border: 1px solid rgba(34, 211, 238, 0.5);
   border-radius: 10px;
   background: var(--bk-field);
-  font-size: 1.125rem;
+  font-size: 1.0625rem;
   font-weight: 600;
+  overflow-wrap: anywhere;
 }
 
 .bk-selected small {

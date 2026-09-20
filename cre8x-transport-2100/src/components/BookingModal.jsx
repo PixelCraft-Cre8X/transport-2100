@@ -21,9 +21,11 @@ import { formatFare } from "../data/journeys";
 import {
   MOCK_BOOKED_SEATS,
   MOCK_CARD,
-  MOCK_DEFAULT_SEAT,
+  MOCK_DEFAULT_SEATS,
   MOCK_PASSENGER,
-  SEATS_PER_VEHICLE,
+  SEAT_LIMIT,
+  SEAT_LAYOUTS,
+  seatRows,
   SERVICE_FEE,
 } from "../data/booking";
 import GlassSelect from "./GlassSelect";
@@ -42,7 +44,7 @@ const HEADINGS = [
   },
   {
     title: "Select Your Seat",
-    subtitle: "Choose one of the available seats.",
+    subtitle: "Choose up to 5 of the available seats.",
     icon: Armchair,
   },
   {
@@ -122,18 +124,15 @@ function BookingDialog({
   const timer = useRef(null);
   const [step, setStep] = useState(1);
   const [stage, setStage] = useState("form"); // form | processing | done
-  const [tried, setTried] = useState({
-    passenger: false,
-    seat: false,
-    pay: false,
-  });
+  const [tried, setTried] = useState({ passenger: false, pay: false });
+  const [seatMessage, setSeatMessage] = useState("");
   const [booking, setBooking] = useState(null);
-  const [vehicle, setVehicle] = useState(null);
+  const [rideIndex, setRideIndex] = useState(0); // which ride's seat is being chosen
   const [seats, setSeats] = useState(() =>
     Object.fromEntries(
       steps
         .filter((s) => s.mode !== "walk")
-        .map((ride) => [ride.start, MOCK_DEFAULT_SEAT[ride.mode]]),
+        .map((ride) => [ride.start, MOCK_DEFAULT_SEATS[ride.mode]]),
     ),
   );
   const [saveCard, setSaveCard] = useState(MOCK_CARD.saveCard);
@@ -147,13 +146,18 @@ function BookingDialog({
   });
 
   const rides = steps.filter((s) => s.mode !== "walk");
-  const activeRide =
-    rides.find((ride) => String(ride.start) === vehicle) || rides[0];
-  const activeSeats = SEATS_PER_VEHICLE[activeRide.mode] || 10;
+  const activeRide = rides[rideIndex];
+  const nextRide = rides[rideIndex + 1];
   const booked = new Set(MOCK_BOOKED_SEATS[activeRide.mode]);
-  const chosenCount = rides.filter((ride) => seats[ride.start]).length;
-  const seatsDone = chosenCount === rides.length;
-  const total = route.cost + SERVICE_FEE;
+  const cabin = seatRows(activeRide.mode);
+  const seatOrder = cabin.flat(2);
+  const chosen = seats[activeRide.start];
+  // The first ride sets how many seats are needed; every other ride matches it.
+  const passengers = seats[rides[0].start].length;
+  const limit = rideIndex === 0 ? SEAT_LIMIT : passengers;
+  const shortName = (ride) => ride.name.split(" · ")[0];
+  const fare = route.cost * passengers;
+  const total = fare + SERVICE_FEE;
 
   const passengerErrors = validatePassenger(form);
   const paymentErrors = validatePayment(form);
@@ -183,7 +187,7 @@ function BookingDialog({
       dialogRef.current?.querySelector(".bk-body")?.scrollTo(0, 0);
     }
     mounted.current = true;
-  }, [step, stage]);
+  }, [step, stage, rideIndex]);
 
   const focusFirstError = () =>
     requestAnimationFrame(() =>
@@ -200,9 +204,60 @@ function BookingDialog({
     setStep(2);
   };
 
-  const toPayment = () => {
-    setTried((t) => ({ ...t, seat: true }));
-    if (seatsDone) setStep(3);
+  const plural = (n) => `${n} seat${n === 1 ? "" : "s"}`;
+
+  const setRideSeats = (list) =>
+    setSeats((current) => {
+      const next = { ...current, [activeRide.start]: list };
+      // Fewer seats on the first ride means fewer on the rest.
+      if (rideIndex === 0) {
+        rides.slice(1).forEach((ride) => {
+          next[ride.start] = next[ride.start].slice(0, list.length);
+        });
+      }
+      return next;
+    });
+
+  const toggleSeat = (seat) => {
+    setSeatMessage("");
+    if (chosen.includes(seat)) {
+      setRideSeats(chosen.filter((s) => s !== seat));
+    } else if (chosen.length >= limit) {
+      setSeatMessage(
+        rideIndex === 0
+          ? `You can select up to ${SEAT_LIMIT} seats.`
+          : `Your first ride has ${plural(passengers)}, so this one needs ${passengers} too.`,
+      );
+    } else {
+      setRideSeats(
+        [...chosen, seat].sort(
+          (a, b) => seatOrder.indexOf(a) - seatOrder.indexOf(b),
+        ),
+      );
+    }
+  };
+
+  // Seats are chosen one ride at a time: each Next moves to the following
+  // vehicle, and the last one continues to payment.
+  const nextSeat = () => {
+    const needed = rideIndex === 0 ? 1 : passengers;
+    if (chosen.length < needed) {
+      setSeatMessage(
+        rideIndex === 0
+          ? "Choose at least one seat to continue."
+          : `Choose ${plural(passengers)} on the ${shortName(activeRide)} to match your first ride.`,
+      );
+      return;
+    }
+    setSeatMessage("");
+    if (nextRide) setRideIndex(rideIndex + 1);
+    else setStep(3);
+  };
+
+  const backSeat = () => {
+    setSeatMessage("");
+    if (rideIndex > 0) setRideIndex(rideIndex - 1);
+    else setStep(1);
   };
 
   const pay = (event) => {
@@ -423,57 +478,77 @@ function BookingDialog({
 
             {step === 2 && (
               <div className="bk-step-form">
-                <div className="bk-vehicle">
+                <div className="bk-vehicle" aria-live="polite">
                   <span className="bk-vehicle-icon">
-                    <ModeIcon mode={activeRide.mode} size={20} />
+                    <ModeIcon mode={activeRide.mode} size={22} />
                   </span>
-                  <GlassSelect
-                    ariaLabel="Vehicle"
-                    options={rides.map((ride) => ({
-                      label: ride.name,
-                      value: String(ride.start),
-                    }))}
-                    value={String(activeRide.start)}
-                    onChange={setVehicle}
-                  />
+                  <span>
+                    <strong>{activeRide.name}</strong>
+                    {rides.length > 1 && (
+                      <small>
+                        Ride {rideIndex + 1} of {rides.length}
+                      </small>
+                    )}
+                  </span>
                 </div>
 
                 <div className="bk-seat-layout">
                   <div
-                    className="bk-cabin"
-                    role="radiogroup"
+                    className={`bk-cabin ${activeRide.mode}`}
+                    role="group"
                     aria-label={`Seats on ${activeRide.name}`}
                   >
                     <div className="bk-cabin-front">
-                      <span>Front</span>
-                      <Disc3 size={26} aria-hidden="true" />
+                      <span>{SEAT_LAYOUTS[activeRide.mode]?.front}</span>
+                      {SEAT_LAYOUTS[activeRide.mode]?.wheel ? (
+                        <Disc3 size={26} aria-hidden="true" />
+                      ) : (
+                        <ModeIcon
+                          mode={activeRide.mode}
+                          size={22}
+                          aria-hidden="true"
+                        />
+                      )}
                     </div>
                     <div className="bk-seat-grid">
-                      {Array.from({ length: activeSeats }, (_, i) => i + 1).map(
-                        (seat) => {
-                          const isBooked = booked.has(seat);
-                          const isChosen = seats[activeRide.start] === seat;
-                          return (
-                            <button
-                              key={seat}
-                              type="button"
-                              role="radio"
-                              aria-checked={isChosen}
-                              aria-label={`Seat ${seat}${isBooked ? ", booked" : ""}`}
-                              disabled={isBooked}
-                              className={`bk-seat ${isChosen ? "chosen" : ""}`}
-                              onClick={() =>
-                                setSeats((current) => ({
-                                  ...current,
-                                  [activeRide.start]: seat,
-                                }))
-                              }
-                            >
-                              {seat}
-                            </button>
-                          );
-                        },
-                      )}
+                      {cabin.map((row) => (
+                        <div
+                          className="bk-seat-row"
+                          key={row.flat().join()}
+                          style={{
+                            gridTemplateColumns: row
+                              .map(
+                                (group) =>
+                                  `repeat(${group.length}, minmax(0, 1fr))`,
+                              )
+                              .join(" 20px "),
+                          }}
+                        >
+                          {row.map((group, i) => [
+                            i > 0 && (
+                              <span key={`aisle-${i}`} aria-hidden="true" />
+                            ),
+                            ...group.map((seat) => {
+                              const isBooked = booked.has(seat);
+                              const isChosen = chosen.includes(seat);
+                              return (
+                                <button
+                                  key={seat}
+                                  type="button"
+                                  role="checkbox"
+                                  aria-checked={isChosen}
+                                  aria-label={`Seat ${seat}${isBooked ? ", booked" : ""}`}
+                                  disabled={isBooked}
+                                  className={`bk-seat ${isChosen ? "chosen" : ""}`}
+                                  onClick={() => toggleSeat(seat)}
+                                >
+                                  {seat}
+                                </button>
+                              );
+                            }),
+                          ])}
+                        </div>
+                      ))}
                     </div>
                   </div>
 
@@ -484,39 +559,41 @@ function BookingDialog({
                       <li className="booked">Booked</li>
                     </ul>
                     <div className="bk-selected">
-                      <strong>Selected Seat</strong>
+                      <strong>Selected Seats</strong>
                       <output aria-live="polite">
-                        {seats[activeRide.start] || "–"}
+                        {chosen.length ? chosen.join(", ") : "–"}
                       </output>
-                      {rides.length > 1 && (
-                        <small>
-                          {chosenCount} of {rides.length} rides
-                        </small>
-                      )}
+                      <small>
+                        {rideIndex === 0
+                          ? `${chosen.length} of up to ${SEAT_LIMIT}`
+                          : `${chosen.length} of ${passengers} to match ride 1`}
+                      </small>
                     </div>
                   </div>
                 </div>
 
-                {tried.seat && !seatsDone && (
+                {seatMessage && (
                   <p className="bk-error" role="alert">
-                    Choose a seat on{" "}
-                    {rides.length > 1 ? "each ride" : "this ride"} to continue.
+                    {seatMessage}
                   </p>
                 )}
                 <div className="bk-nav">
                   <button
                     type="button"
                     className="bk-secondary"
-                    onClick={() => setStep(1)}
+                    onClick={backSeat}
                   >
                     <ArrowLeft size={18} /> Back
                   </button>
                   <button
                     type="button"
                     className="bk-primary"
-                    onClick={toPayment}
+                    onClick={nextSeat}
                   >
-                    Next: Payment <ArrowRight size={20} />
+                    {nextRide
+                      ? `Next: ${shortName(nextRide)} seat`
+                      : "Next: Payment"}{" "}
+                    <ArrowRight size={20} />
                   </button>
                 </div>
               </div>
@@ -632,8 +709,8 @@ function BookingDialog({
 
                 <dl className="bk-fare">
                   <div>
-                    <dt>Fare (1 seat)</dt>
-                    <dd>{formatFare(route.cost)}</dd>
+                    <dt>Fare ({plural(passengers)})</dt>
+                    <dd>{formatFare(fare)}</dd>
                   </div>
                   <div>
                     <dt>Service fee</dt>

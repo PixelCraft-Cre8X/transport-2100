@@ -1,5 +1,5 @@
 import qrcode from "qrcode-generator";
-import { ticketPayload } from "./booking";
+import { seatSummary, ticketPayload } from "./booking";
 import { formatFare } from "../data/journeys";
 
 const W = 900;
@@ -112,14 +112,25 @@ export async function renderTicketPng(booking, logoSrc) {
   // Passenger, seats, services
   text("Passenger", 80, 470, { size: 16, color: "#8fa3b7" });
   text(booking.name, 80, 502, { weight: 600, size: 22 });
-  text("Seat No.", 80, 556, { size: 16, color: "#8fa3b7" });
-  text(booking.services.map((s) => s.seat).join(" · "), 80, 590, {
-    weight: 700,
-    size: 28,
-  });
-  text("Service", 80, 644, { size: 16, color: "#8fa3b7" });
+  if (booking.passengers > 1)
+    text(`+ ${booking.passengers - 1} more`, 80, 526, {
+      size: 14,
+      color: "#8fa3b7",
+    });
+  text("Seat No.", 80, 566, { size: 16, color: "#8fa3b7" });
+  const seatLines = seatSummary(booking);
+  seatLines.forEach((line, i) =>
+    text(
+      line.label ? `${line.label}: ${line.text}` : line.text,
+      80,
+      598 + i * 30,
+      { weight: 700, size: seatLines.length > 1 ? 20 : 26 },
+    ),
+  );
+  const serviceY = 598 + seatLines.length * 30 + 24;
+  text("Service", 80, serviceY, { size: 16, color: "#8fa3b7" });
   booking.services.forEach((service, i) =>
-    text(service.name, 80, 676 + i * 30, { weight: 600, size: 17 }),
+    text(service.name, 80, serviceY + 30 + i * 28, { weight: 600, size: 17 }),
   );
 
   // QR code
