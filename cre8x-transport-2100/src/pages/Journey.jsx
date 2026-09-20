@@ -10,6 +10,7 @@ import {
   ArrowRight,
   ArrowUpRight,
   CalendarDays,
+  ChevronDown,
   Heart,
   Lock,
   MapPin,
@@ -94,6 +95,7 @@ export default function Journey() {
   const bookingRequested = params.get("booking") === "1" && !booking;
   const [ticketOpen, setTicketOpen] = useState(false);
   const [cancelled, setCancelled] = useState(location.state?.cancelled ?? null);
+  const [detailsOpen, setDetailsOpen] = useState(false);
   const routeGridRef = useRef(null);
   const [activeRouteCard, setActiveRouteCard] = useState(selectedIndex);
 
@@ -334,7 +336,20 @@ export default function Journey() {
             aria-label="Journey details"
           >
             <h2>Journey details</h2>
-            <div className="jm-details-body">
+            <button
+              type="button"
+              className="jm-details-toggle"
+              aria-expanded={detailsOpen}
+              aria-controls="journey-details-body"
+              onClick={() => setDetailsOpen((open) => !open)}
+            >
+              <span>Journey details</span>
+              <ChevronDown size={18} aria-hidden="true" />
+            </button>
+            <div
+              id="journey-details-body"
+              className={`jm-details-body ${detailsOpen ? "is-open" : ""}`}
+            >
               <ol className="jm-steps">
                 {steps.map((step, i) => {
                   const last = i === steps.length - 1;
