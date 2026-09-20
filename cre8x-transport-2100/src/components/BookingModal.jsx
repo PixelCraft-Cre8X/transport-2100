@@ -494,9 +494,11 @@ function BookingDialog({
                     </dl>
                   </aside>
                 </div>
-                <button type="submit" className="bk-primary">
-                  Next: Select Seat <ArrowRight size={20} />
-                </button>
+                <div className="bk-nav">
+                  <button type="submit" className="bk-primary">
+                    Next: Select Seat <ArrowRight size={20} />
+                  </button>
+                </div>
               </form>
             )}
 

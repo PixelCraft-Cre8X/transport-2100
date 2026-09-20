@@ -170,3 +170,21 @@ export function createJourneyAIResponse(result) {
     );
   return parts.join(" ");
 }
+
+export function getJourneyAIContext({ pathname, from, to, route }) {
+  const hasJourney = Boolean(from && to);
+  const tracking = pathname === "/tracking" && hasJourney;
+  const routeReady = hasJourney && Boolean(route);
+  return {
+    hasJourney,
+    tracking,
+    routeReady,
+    greeting: tracking
+      ? `Hi, I’m Journey AI. I’m here to help with your current journey to ${to.name}.`
+      : routeReady
+        ? `Hi, I’m Journey AI. Your route to ${to.name} is ready. You can ask me to make it faster, cheaper, simpler, or start the journey.`
+        : hasJourney
+          ? `Hi, I’m Journey AI. I can help with your journey from ${from.name} to ${to.name}. What would you like to know or change?`
+          : "Hi, I’m Journey AI. Where would you like to go?",
+  };
+}

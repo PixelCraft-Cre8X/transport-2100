@@ -3,7 +3,6 @@ import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import {
   ArrowLeft,
   ArrowRight,
-  Bell,
   Ban,
   Clock3,
   MapPin,
@@ -27,12 +26,39 @@ import RouteTimeline from "../components/RouteTimeline";
 import TrackingMap from "../components/TrackingMap";
 import TicketModal from "../components/TicketModal";
 import CancelJourneyModal from "../components/CancelJourneyModal";
-import { clearBooking, useBooking } from "../utils/booking";
+import { clearBooking, completeBooking, useBooking } from "../utils/booking";
 import "./Tracking.css";
 
 const START_PROGRESS = 0.14;
 const TICK_MS = 1000;
 const TICK_STEP = 0.006;
+const TRACKING_PROGRESS_PREFIX = "moveone.tracking-progress.";
+
+function readTrackingProgress(reference) {
+  if (!reference) return START_PROGRESS;
+  try {
+    const saved = Number(
+      sessionStorage.getItem(`${TRACKING_PROGRESS_PREFIX}${reference}`),
+    );
+    return Number.isFinite(saved)
+      ? Math.min(1, Math.max(START_PROGRESS, saved))
+      : START_PROGRESS;
+  } catch {
+    return START_PROGRESS;
+  }
+}
+
+function saveTrackingProgress(reference, progress) {
+  if (!reference) return;
+  try {
+    sessionStorage.setItem(
+      `${TRACKING_PROGRESS_PREFIX}${reference}`,
+      String(progress),
+    );
+  } catch {
+    // Tracking still works if session storage is unavailable.
+  }
+}
 
 function nextStepText(segments, index, destination) {
   if (index >= segments.length - 1) return `Welcome to ${destination}`;
@@ -47,7 +73,12 @@ function nextStepText(segments, index, destination) {
 
 export default function Tracking() {
   const [params] = useSearchParams();
-  const booking = useBooking();
+  // A finished booking no longer applies to a fresh visit. It is read once, so
+  // finishing this journey doesn't change what the page is showing.
+  const stored = useBooking();
+  const [booking] = useState(() =>
+    stored && !stored.completed ? stored : null,
+  );
   const navigate = useNavigate();
   // A paid booking fixes the journey being tracked, whatever the URL says.
   const { from, to, selected, walking } = readJourney(
@@ -57,7 +88,10 @@ export default function Tracking() {
   const [cancelOpen, setCancelOpen] = useState(false);
   const base = booking?.departureMinutes;
   const segments = withStartTimes(selected.segments, base);
-  const [progress, setProgress] = useState(START_PROGRESS);
+  const trackingReference = booking?.reference;
+  const [progress, setProgress] = useState(() =>
+    readTrackingProgress(trackingReference),
+  );
   const [playing, setPlaying] = useState(true);
   const [voice, setVoice] = useState(false);
   const [shared, setShared] = useState(false);
@@ -72,9 +106,18 @@ export default function Tracking() {
     return () => clearInterval(timer);
   }, [running]);
 
+  useEffect(() => {
+    saveTrackingProgress(trackingReference, progress);
+  }, [trackingReference, progress]);
+
   const duration = selected.duration;
   const elapsed = progress * duration;
   const arrived = progress >= 1;
+
+  // Arriving finishes the journey, which frees the route for a new booking.
+  useEffect(() => {
+    if (arrived && booking) completeBooking();
+  }, [arrived, booking]);
   const currentIndex = Math.max(
     0,
     segments.findLastIndex((s) => s.start <= elapsed),
@@ -169,9 +212,6 @@ export default function Tracking() {
           <h1>On your way to {to.name}.</h1>
         </div>
         <div className="tk-header-actions">
-          <button className="icon-button" aria-label="Journey notifications">
-            <Bell size={18} />
-          </button>
           <span className="tk-live">
             <span className="status-dot" />{" "}
             {arrived ? "Arrived" : "Live tracking"}
@@ -316,17 +356,30 @@ export default function Tracking() {
                 >
                   <Ticket size={18} /> View ticket
                 </button>
-                <button
-                  type="button"
-                  className="tk-action tk-cancel"
-                  aria-haspopup="dialog"
-                  onClick={() => setCancelOpen(true)}
-                >
-                  <Ban size={18} /> Cancel journey
-                </button>
+                {!arrived && (
+                  <button
+                    type="button"
+                    className="tk-action tk-cancel"
+                    aria-haspopup="dialog"
+                    onClick={() => setCancelOpen(true)}
+                  >
+                    <Ban size={18} /> Cancel journey
+                  </button>
+                )}
               </>
             )}
           </div>
+          {arrived && (
+            <div className="tk-finish">
+              <p>
+                <strong>You&apos;ve arrived in {to.name}.</strong> This journey
+                is finished. Plan your next trip from Discover.
+              </p>
+              <Link className="tk-finish-button" to="/">
+                Plan another journey <ArrowRight size={20} />
+              </Link>
+            </div>
+          )}
         </aside>
       </div>
       <TicketModal

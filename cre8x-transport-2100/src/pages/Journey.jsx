@@ -28,7 +28,7 @@ import { ModeIcon } from "../components/UI";
 import JourneyMap from "../components/JourneyMap";
 import BookingModal from "../components/BookingModal";
 import TicketModal from "../components/TicketModal";
-import { useBooking } from "../utils/booking";
+import { useActiveBooking } from "../utils/booking";
 import DestinationArt from "../components/DestinationArt";
 import "./Journey.css";
 
@@ -65,7 +65,7 @@ function transferLabel(count) {
 
 export default function Journey() {
   const [params, setParams] = useSearchParams();
-  const booking = useBooking();
+  const booking = useActiveBooking();
   const location = useLocation();
   const navigate = useNavigate();
   const locked = Boolean(booking);
@@ -89,6 +89,7 @@ export default function Journey() {
   const [bookingOpen, setBookingOpen] = useState(
     () => params.get("booking") === "1" && !booking,
   );
+  const bookingRequested = params.get("booking") === "1" && !booking;
   const [ticketOpen, setTicketOpen] = useState(false);
   const [cancelled, setCancelled] = useState(location.state?.cancelled ?? null);
 
@@ -102,6 +103,15 @@ export default function Journey() {
       });
     }
   }, [location, navigate]);
+
+  function closeBooking() {
+    setBookingOpen(false);
+    if (params.get("booking") === "1") {
+      const nextParams = new URLSearchParams(params);
+      nextParams.delete("booking");
+      setParams(nextParams, { replace: true });
+    }
+  }
 
   const choose = (style) =>
     !locked && setParams(journeyQuery(from.name, to.name, style, walking));
@@ -400,8 +410,8 @@ export default function Journey() {
         </div>
       </div>
       <BookingModal
-        open={bookingOpen}
-        onClose={() => setBookingOpen(false)}
+        open={bookingOpen || bookingRequested}
+        onClose={closeBooking}
         from={from}
         to={to}
         steps={steps}

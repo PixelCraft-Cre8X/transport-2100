@@ -13,6 +13,7 @@ const {
   parseJourneyRequest: parse,
   recommendJourney: recommend,
   createJourneyAIResponse: respond,
+  getJourneyAIContext: getAIContext,
 } = await server.ssrLoadModule("/src/utils/journeyAI.js");
 const { buildRoutes, journeyQuery, readJourney, formatFare } =
   await server.ssrLoadModule("/src/data/journeys.js");
@@ -36,6 +37,29 @@ const context = {
   style: "recommended",
   walking: "include",
 };
+
+test("Journey AI greeting follows the current journey context", () => {
+  const from = findLocation("Maharagama");
+  const to = findLocation("Galle");
+  const route = buildRoutes(from, to, "include")[0];
+
+  assert.equal(
+    getAIContext({ pathname: "/", from: null, to: null, route: null }).greeting,
+    "Hi, I’m Journey AI. Where would you like to go?",
+  );
+  assert.match(
+    getAIContext({ pathname: "/journey", from, to, route: null }).greeting,
+    /journey from Maharagama to Galle/,
+  );
+  assert.match(
+    getAIContext({ pathname: "/journey", from, to, route }).greeting,
+    /route to Galle is ready/,
+  );
+  assert.match(
+    getAIContext({ pathname: "/tracking", from, to, route }).greeting,
+    /current journey to Galle/,
+  );
+});
 
 function conversationTurns(phrases, conversation = start()) {
   let response;
@@ -118,7 +142,13 @@ test("acceptance followed by a start phrase opens booking for the exact journey"
 
 test("view journey opens the current recommendation in My Journey", () => {
   const recommended = turn("Take me to Galle");
-  for (const phrase of ["View journey", "Show my journey"]) {
+  for (const phrase of [
+    "View journey",
+    "Show my journey",
+    "View my journey page",
+    "Open the My Journey tab",
+    "Go to my journey",
+  ]) {
     const viewed = turn(phrase, recommended.conversation);
     const url = new URL(viewed.navigation, "https://moveone.test");
     assert.equal(url.pathname, "/journey", phrase);

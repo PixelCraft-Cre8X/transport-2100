@@ -84,8 +84,7 @@
   border: 1px solid rgba(56, 130, 170, 0.28);
   border-radius: 18px;
   background:
-    radial-gradient(120% 90% at 25% 30%, #08192c 0%, #040b15 62%),
-    #040b15;
+    radial-gradient(120% 90% at 25% 30%, #08192c 0%, #040b15 62%), #040b15;
 }
 
 .tk-stage {
@@ -123,11 +122,12 @@
   letter-spacing: 0.35em;
 }
 
-.tk-traffic {
+.tk-traffic-bus {
   fill: none;
-  stroke: #34d399;
-  stroke-opacity: 0.16;
-  stroke-width: 16;
+  stroke: #facc15;
+  stroke-opacity: 1;
+  stroke-width: 4px;
+  stroke-dasharray: 18 82;
   stroke-linecap: round;
   stroke-linejoin: round;
 }
@@ -539,7 +539,6 @@
   .tk-layers-card .tk-layers-toggle[aria-expanded="false"] {
     margin-bottom: 0;
   }
-
 }
 
 .tk-layers-toggle {
@@ -893,6 +892,55 @@
   color: var(--tk-cyan);
 }
 
+/* Shown once the journey has reached its destination. */
+
+.tk-finish {
+  display: grid;
+  gap: 12px;
+  padding: 16px;
+  border: 1px solid rgba(52, 211, 153, 0.35);
+  border-radius: 14px;
+  background: rgba(52, 211, 153, 0.07);
+}
+
+.tk-finish p {
+  color: #cfdbe7;
+  font-size: var(--text-sm);
+}
+
+.tk-finish strong {
+  display: block;
+  color: #fff;
+  font-weight: 600;
+}
+
+.tk-finish-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  min-height: 50px;
+  border-radius: 12px;
+  background: var(--tk-cyan);
+  color: #05141f;
+  font-size: 1.0625rem;
+  font-weight: 600;
+  box-shadow: 0 6px 24px rgba(34, 211, 238, 0.22);
+  transition:
+    transform 0.2s,
+    filter 0.2s;
+}
+
+.tk-finish-button:hover {
+  transform: translateY(-1px);
+  filter: brightness(1.07);
+}
+
+.tk-finish-button:focus-visible {
+  outline: 2px solid var(--cyan);
+  outline-offset: 3px;
+}
+
 @media (min-width: 560px) {
   .tk-stage {
     height: 540px;
@@ -964,7 +1012,6 @@
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
   }
-
 }
 
 @media (max-width: 479px) {
@@ -1070,7 +1117,8 @@
   }
 
   .tk-track span,
-  .tk-track i {
+  .tk-track i,
+  .tk-finish-button {
     transition: none;
   }
 }
