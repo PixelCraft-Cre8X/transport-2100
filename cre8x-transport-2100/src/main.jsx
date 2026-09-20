@@ -4,7 +4,10 @@ import "./index.css";
 import "./App.css";
 import App from "./App.jsx";
 
-document.title = "moveone";
+document.title = "MoveOne";
+if ("scrollRestoration" in window.history) {
+  window.history.scrollRestoration = "manual";
+}
 const favicon = document.querySelector('link[rel="icon"]') || document.createElement("link");
 favicon.rel = "icon";
 favicon.type = "image/png";
