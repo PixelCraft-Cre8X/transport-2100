@@ -200,8 +200,9 @@
     margin-left: auto;
   }
 
-  .home-header {
-    position: absolute;
+  .home-header,
+  .route-header {
+    position: fixed;
     top: 10px;
     left: 50%;
     margin-top: 0;
@@ -209,7 +210,7 @@
   }
 
   .home-page .hero-layout {
-    padding-top: 120px;
+    padding-top: 202px;
     padding-bottom: 39px;
   }
 
@@ -266,18 +267,25 @@
 }
 
 @media (max-width: 767px) {
+  .main-shell {
+    padding-top: 68px;
+  }
+
   .site-header {
-    position: sticky;
+    position: fixed;
+    top: 8px;
+    left: 50%;
     width: calc(100% - 20px);
-    margin-top: 8px;
+    margin: 0;
     border-radius: 20px;
+    transform: translateX(-50%);
   }
 
   .home-header {
-    position: sticky;
-    top: 0;
-    left: auto;
-    transform: none;
+    position: fixed;
+    top: 8px;
+    left: 50%;
+    transform: translateX(-50%);
   }
 
   .hero-image img {
@@ -466,6 +474,8 @@
   }
 
   .page-footer {
+    position: relative;
+    z-index: 2;
     width: calc(100% - 40px);
     flex-direction: column;
     align-items: center;
@@ -489,6 +499,35 @@
 
   .home-page .hero-section {
     min-height: auto;
+  }
+
+  .home-page {
+    position: relative;
+    isolation: isolate;
+  }
+
+  .home-page .hero-image {
+    position: fixed;
+    z-index: 0;
+    inset: 0;
+    width: 100%;
+    height: 100svh;
+    pointer-events: none;
+  }
+
+  .home-page .hero-shade {
+    position: fixed;
+    z-index: 0;
+    inset: 0;
+    pointer-events: none;
+  }
+
+  .home-page > .hero-section,
+  .home-page > .quick-destinations,
+  .home-page > .transport-section,
+  .home-page > .home-bottom {
+    position: relative;
+    z-index: 1;
   }
 
   .hero-image img {
@@ -631,8 +670,48 @@
   }
 
   .transport-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 9px;
+    display: flex;
+    gap: 12px;
+    margin-right: -20px;
+    padding-right: 20px;
+    overflow-x: auto;
+    scroll-padding-inline: 20px;
+    scroll-snap-type: x mandatory;
+    scrollbar-width: none;
+    overscroll-behavior-x: contain;
+  }
+
+  .transport-grid::-webkit-scrollbar {
+    display: none;
+  }
+
+  .transport-card {
+    flex: 0 0 min(82vw, 310px);
+    scroll-snap-align: start;
+  }
+
+  .transport-carousel-dots {
+    display: flex;
+    justify-content: center;
+    gap: 7px;
+    margin-top: 18px;
+  }
+
+  .transport-carousel-dots button {
+    display: block;
+    padding: 0;
+    width: 6px;
+    height: 6px;
+    border-radius: 999px;
+    border: 0;
+    cursor: pointer;
+    background: rgba(148, 163, 184, 0.38);
+  }
+
+  .transport-carousel-dots button.active {
+    width: 20px;
+    background: var(--cyan);
+    box-shadow: 0 0 10px rgba(34, 211, 238, 0.45);
   }
 
   .transport-art {
@@ -724,6 +803,14 @@
 }
 
 @media (min-width: 1024px) {
+  .main-shell {
+    padding-top: 0;
+  }
+
+  .inner-page {
+    padding-top: 130px;
+  }
+
   .page-footer,
   .footer-network {
     font-size: 0.8125rem;
