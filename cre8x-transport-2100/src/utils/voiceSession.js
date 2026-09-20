@@ -1,6 +1,7 @@
 import { microphoneFailure, microphoneNotice } from "./microphone.js";
 
-export const voiceGreeting = " Hi, I’m Journey AI. Where would you like to go?";
+export const voiceGreeting =
+  "Hi, I’m Journey AI. Where would you like to go? You can tell me a destination or ask for the fastest, cheapest, or most comfortable journey.";
 export const recognitionUnavailable =
   "Voice recognition is not supported in this browser. You can still type your request.";
 
@@ -273,9 +274,9 @@ export function createVoiceSession({
       }
       try {
         synthesis.cancel();
+        // Keep the browser's default voice, matching live map guidance.
         const speech = new Utterance(message);
         const version = revision;
-        speech.lang = "en-US";
         utterance = speech;
         speech.onend = () => {
           if (disposed || utterance !== speech || version !== revision) return;

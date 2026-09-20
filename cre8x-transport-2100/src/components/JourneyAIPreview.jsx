@@ -37,6 +37,21 @@ const statusLabels = {
   "voice-error": "Voice unavailable — you can type below",
 };
 
+const planningExamples = [
+  "Take me to Rathnapura",
+  "Find the fastest route to Kandy",
+  "I need less walking",
+  "Find the cheapest route to Galle",
+];
+const followUpExamples = [
+  "Make it faster",
+  "Make it cheaper",
+  "No air taxi",
+  "How long will it take?",
+  "How much does it cost?",
+  "Show me another option",
+];
+
 export default function JourneyAIPreview({ open, ...props }) {
   return open ? <JourneyAIDialog {...props} /> : null;
 }
@@ -82,6 +97,7 @@ function JourneyAIDialog({
     createJourneyConversation(context),
   );
   const conversationRef = useRef(conversation);
+  const examples = conversation.route ? followUpExamples : planningExamples;
   const route = result?.status === "success" ? result.route : null;
   const response = result ? createJourneyAIResponse(result) : "";
   const answer =
@@ -300,6 +316,31 @@ function JourneyAIDialog({
               {voiceNotice}
             </p>
           )}
+          <div
+            className="journey-ai-examples"
+            role="group"
+            aria-labelledby="journey-ai-examples-label"
+          >
+            <p id="journey-ai-examples-label">Try saying…</p>
+            <div className="journey-ai-suggestions">
+              {examples.map((example, index) => (
+                <button
+                  // Keep each slot mounted so focus survives changing examples.
+                  key={index}
+                  className="journey-ai-suggestion"
+                  type="button"
+                  aria-label={`Ask Journey AI: ${example}`}
+                  aria-disabled={busy}
+                  onClick={() => {
+                    if (!busy)
+                      voiceSessionRef.current?.submit(example, "text");
+                  }}
+                >
+                  {example}
+                </button>
+              ))}
+            </div>
+          </div>
           <button
             className="journey-ai-end"
             type="button"
