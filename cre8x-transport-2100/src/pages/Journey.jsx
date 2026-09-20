@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   Link,
   useLocation,
@@ -10,6 +10,7 @@ import {
   ArrowRight,
   ArrowUpRight,
   CalendarDays,
+  ChevronDown,
   Heart,
   Lock,
   MapPin,
@@ -79,6 +80,10 @@ export default function Journey() {
     .sort((a, b) => (b.id === TOP_STYLE) - (a.id === TOP_STYLE));
   const selected =
     routes.find((o) => o.id === journey.selected.id) || routes[0];
+  const selectedIndex = Math.max(
+    0,
+    routes.findIndex((option) => option.id === selected.id),
+  );
   // A booked journey keeps the date and time it was booked for.
   const base = booking?.departureMinutes;
   const steps = withStartTimes(selected.segments, base);
@@ -90,6 +95,49 @@ export default function Journey() {
   const bookingRequested = params.get("booking") === "1" && !booking;
   const [ticketOpen, setTicketOpen] = useState(false);
   const [cancelled, setCancelled] = useState(location.state?.cancelled ?? null);
+  const [detailsOpen, setDetailsOpen] = useState(false);
+  const routeGridRef = useRef(null);
+  const [activeRouteCard, setActiveRouteCard] = useState(selectedIndex);
+
+  function scrollToRoute(index) {
+    const cards = routeGridRef.current?.querySelectorAll(".jm-route");
+    cards?.[index]?.scrollIntoView({
+      behavior: "smooth",
+      block: "nearest",
+      inline: "start",
+    });
+  }
+
+  useEffect(() => {
+    const grid = routeGridRef.current;
+    if (!grid) return undefined;
+
+    function updateActiveRoute() {
+      const cards = Array.from(grid.children).filter((child) =>
+        child.classList.contains("jm-route"),
+      );
+      if (!cards.length) return;
+
+      const currentScroll = grid.scrollLeft;
+      const nextIndex = cards.reduce(
+        (closestIndex, card, index) =>
+          Math.abs(card.offsetLeft - currentScroll) <
+          Math.abs(cards[closestIndex].offsetLeft - currentScroll)
+            ? index
+            : closestIndex,
+        0,
+      );
+      setActiveRouteCard(nextIndex);
+    }
+
+    grid.addEventListener("scroll", updateActiveRoute, { passive: true });
+    updateActiveRoute();
+    return () => grid.removeEventListener("scroll", updateActiveRoute);
+  }, [routes.length]);
+
+  useEffect(() => {
+    scrollToRoute(selectedIndex);
+  }, [selectedIndex]);
 
   // The "cancelled" notice arrives through navigation state; clear it from
   // history so a refresh doesn't bring it back.
@@ -109,6 +157,12 @@ export default function Journey() {
       nextParams.delete("booking");
       setParams(nextParams, { replace: true });
     }
+  }
+
+  function toggleDetails() {
+    const scrollY = window.scrollY;
+    setDetailsOpen((open) => !open);
+    requestAnimationFrame(() => window.scrollTo(0, scrollY));
   }
 
   const choose = (style) =>
@@ -171,7 +225,7 @@ export default function Journey() {
 
           <section className="jm-choices" aria-labelledby="jm-choices-title">
             <h2 id="jm-choices-title">Select your journey</h2>
-            <fieldset className="jm-options">
+            <fieldset className="jm-options" ref={routeGridRef}>
               <legend className="jm-visually-hidden">Journey options</legend>
               {routes.map((option) => {
                 const isSelected = selected.id === option.id;
@@ -241,6 +295,18 @@ export default function Journey() {
                 );
               })}
             </fieldset>
+            <div className="jm-options-dots" aria-label="Journey options slides">
+              {routes.map((option, index) => (
+                <button
+                  key={option.id}
+                  className={index === activeRouteCard ? "active" : ""}
+                  type="button"
+                  aria-label={`Show ${option.label}`}
+                  aria-current={index === activeRouteCard ? "true" : undefined}
+                  onClick={() => scrollToRoute(index)}
+                />
+              ))}
+            </div>
           </section>
         </div>
 
@@ -276,7 +342,20 @@ export default function Journey() {
             aria-label="Journey details"
           >
             <h2>Journey details</h2>
-            <div className="jm-details-body">
+            <button
+              type="button"
+              className="jm-details-toggle"
+              aria-expanded={detailsOpen}
+              aria-controls="journey-details-body"
+              onClick={toggleDetails}
+            >
+              <span>Journey details</span>
+              <ChevronDown size={18} aria-hidden="true" />
+            </button>
+            <div
+              id="journey-details-body"
+              className={`jm-details-body ${detailsOpen ? "is-open" : ""}`}
+            >
               <ol className="jm-steps">
                 {steps.map((step, i) => {
                   const last = i === steps.length - 1;

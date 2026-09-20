@@ -5,6 +5,7 @@ import {
   ArrowRight,
   Ban,
   Clock3,
+  ChevronDown,
   MapPin,
   Pause,
   Play,
@@ -27,6 +28,7 @@ import TrackingMap from "../components/TrackingMap";
 import TicketModal from "../components/TicketModal";
 import CancelJourneyModal from "../components/CancelJourneyModal";
 import { clearBooking, completeBooking, useBooking } from "../utils/booking";
+import useMediaQuery from "../utils/useMediaQuery";
 import "./Tracking.css";
 
 const START_PROGRESS = 0.14;
@@ -95,6 +97,8 @@ export default function Tracking() {
   const [playing, setPlaying] = useState(true);
   const [voice, setVoice] = useState(false);
   const [shared, setShared] = useState(false);
+  const mobileTimeline = useMediaQuery("(max-width: 899px)");
+  const [timelineOpen, setTimelineOpen] = useState(false);
 
   const running = playing && progress < 1;
   useEffect(() => {
@@ -329,10 +333,27 @@ export default function Tracking() {
             </div>
           </div>
 
-          <RouteTimeline
-            segments={selected.segments}
-            currentIndex={arrived ? segments.length : currentIndex}
-          />
+          {mobileTimeline && (
+            <button
+              type="button"
+              className="tk-timeline-toggle"
+              aria-expanded={timelineOpen}
+              aria-controls="tk-route-timeline"
+              onClick={() => setTimelineOpen((open) => !open)}
+            >
+              <span>See more details</span>
+              <ChevronDown size={18} aria-hidden="true" />
+            </button>
+          )}
+          <div
+            id="tk-route-timeline"
+            className={`tk-route-timeline ${timelineOpen ? "is-open" : ""}`}
+          >
+            <RouteTimeline
+              segments={selected.segments}
+              currentIndex={arrived ? segments.length : currentIndex}
+            />
+          </div>
 
           <div className="tk-actions">
             <button

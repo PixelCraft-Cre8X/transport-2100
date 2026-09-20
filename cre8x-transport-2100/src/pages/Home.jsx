@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { Link, useOutletContext } from "react-router-dom";
 import {
   ArrowRight,
@@ -238,8 +239,9 @@ function QuickDestinationEditor({
   onSave,
   onCancel,
 }) {
-  return (
-    <div className="modal-backdrop" onClick={onCancel}>
+  return createPortal(
+    (
+    <div className="modal-backdrop destination-editor-backdrop" onClick={onCancel}>
       <section
         className="destination-editor glass-modal"
         role="dialog"
@@ -289,5 +291,7 @@ function QuickDestinationEditor({
         </div>
       </section>
     </div>
+    ),
+    document.body,
   );
 }

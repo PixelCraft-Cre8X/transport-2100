@@ -1,7 +1,8 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { NavLink, useLocation } from "react-router-dom";
 import {
   Compass,
+  Download,
   Globe2,
   Map,
   Radio,
@@ -29,11 +30,11 @@ function Brand() {
       to="/"
       reloadDocument
       className="brand"
-      aria-label="moveone home"
+      aria-label="MoveOne home"
     >
       <img className="brand-logo" src={logoImage} alt="" />
       <span className="brand-name">
-        moveone
+        MoveOne
         <small>THE WAY FORWARD.</small>
       </span>
     </NavLink>
@@ -69,13 +70,20 @@ function Navigation({
         aria-haspopup="dialog"
       >
         <Sparkles size={18} strokeWidth={1.7} />
-        <span>{mobile ? "AI" : "Journey AI"}</span>
+        <span>Journey AI</span>
       </button>
     </nav>
   );
 }
 
-function Header({ search, pathname, onOpenAI, requestingMicrophone }) {
+function Header({
+  search,
+  pathname,
+  onOpenAI,
+  requestingMicrophone,
+  canInstall,
+  onInstall,
+}) {
   return (
     <header
       className={`site-header glass-nav${
@@ -101,6 +109,17 @@ function Header({ search, pathname, onOpenAI, requestingMicrophone }) {
           <span className="language-meta">
             <Globe2 size={15} /> EN
           </span>
+          {canInstall && (
+            <button
+              className="install-app-button"
+              type="button"
+              onClick={onInstall}
+              aria-label="Install MoveOne app"
+            >
+              <Download size={15} />
+              <span>Install app</span>
+            </button>
+          )}
           <div className="avatar" aria-label="Demo traveler profile">
             <img src={profileImage} alt="" />
           </div>
@@ -120,6 +139,7 @@ function Header({ search, pathname, onOpenAI, requestingMicrophone }) {
 export default function Layout() {
   const { pathname, search } = useLocation();
   const [showIntro, setShowIntro] = useState(true);
+  const [installPrompt, setInstallPrompt] = useState(null);
   const [journeyAIOpen, setJourneyAIOpen] = useState(false);
   const [microphonePermission, setMicrophonePermission] = useState("unknown");
   const microphonePermissionRef = useRef("unknown");
@@ -135,6 +155,27 @@ export default function Layout() {
       openingRef.current += 1;
     };
   }, []);
+
+  useEffect(() => {
+    const handleInstallPrompt = (event) => {
+      event.preventDefault();
+      setInstallPrompt(event);
+    };
+    const handleInstalled = () => setInstallPrompt(null);
+
+    window.addEventListener("beforeinstallprompt", handleInstallPrompt);
+    window.addEventListener("appinstalled", handleInstalled);
+    return () => {
+      window.removeEventListener("beforeinstallprompt", handleInstallPrompt);
+      window.removeEventListener("appinstalled", handleInstalled);
+    };
+  }, []);
+
+  const installApp = useCallback(async () => {
+    if (!installPrompt) return;
+    await installPrompt.prompt();
+    setInstallPrompt(null);
+  }, [installPrompt]);
 
   const requestMicrophone = useCallback(() => {
     if (permissionRequestRef.current) return permissionRequestRef.current;
@@ -182,10 +223,19 @@ export default function Layout() {
   }, []);
   const requestingMicrophone = microphonePermission === "requesting-permission";
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     window.scrollTo(0, 0);
-    document.title = `${pathname === "/tracking" ? "Live tracking" : pathname === "/journey" ? "Your journey" : "Discover"} · moveone`;
-  }, [pathname, search]);
+    document.title = "MoveOne";
+    const frame = window.requestAnimationFrame(() => window.scrollTo(0, 0));
+    // PageTransition swaps the route content after its short exit animation.
+    // Reset once more after that swap so the new page cannot inherit the old
+    // page's scroll anchor position.
+    const settle = window.setTimeout(() => window.scrollTo(0, 0), 180);
+    return () => {
+      window.cancelAnimationFrame(frame);
+      window.clearTimeout(settle);
+    };
+  }, [pathname]);
 
   useEffect(() => {
     if (!showIntro) {
@@ -229,6 +279,8 @@ export default function Layout() {
           pathname={pathname}
           onOpenAI={openJourneyAI}
           requestingMicrophone={requestingMicrophone}
+          canInstall={Boolean(installPrompt)}
+          onInstall={installApp}
         />
 
         <main id="main-content" tabIndex={-1}>
