@@ -363,6 +363,7 @@ h3 {
 
 main {
   min-height: calc(100svh - 72px);
+  overflow-anchor: none;
 }
 
 @media (min-width: 1024px) {

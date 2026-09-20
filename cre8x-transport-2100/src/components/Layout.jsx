@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { NavLink, useLocation } from "react-router-dom";
 import {
   Compass,
@@ -29,11 +29,11 @@ function Brand() {
       to="/"
       reloadDocument
       className="brand"
-      aria-label="moveone home"
+      aria-label="MoveOne home"
     >
       <img className="brand-logo" src={logoImage} alt="" />
       <span className="brand-name">
-        moveone
+        MoveOne
         <small>THE WAY FORWARD.</small>
       </span>
     </NavLink>
@@ -182,9 +182,18 @@ export default function Layout() {
   }, []);
   const requestingMicrophone = microphonePermission === "requesting-permission";
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     window.scrollTo(0, 0);
-    document.title = `${pathname === "/tracking" ? "Live tracking" : pathname === "/journey" ? "Your journey" : "Discover"} · moveone`;
+    document.title = "MoveOne";
+    const frame = window.requestAnimationFrame(() => window.scrollTo(0, 0));
+    // PageTransition swaps the route content after its short exit animation.
+    // Reset once more after that swap so the new page cannot inherit the old
+    // page's scroll anchor position.
+    const settle = window.setTimeout(() => window.scrollTo(0, 0), 180);
+    return () => {
+      window.cancelAnimationFrame(frame);
+      window.clearTimeout(settle);
+    };
   }, [pathname]);
 
   useEffect(() => {
