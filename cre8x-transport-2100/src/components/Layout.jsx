@@ -10,6 +10,7 @@ import {
   Sun,
 } from "lucide-react";
 import logoImage from "../assets/logo.png";
+import IntroScreen from "./IntroScreen";
 import JourneyAIPreview from "./JourneyAIPreview";
 
 const links = [
@@ -103,6 +104,7 @@ function Header({ search, pathname, onOpenAI, requestingMicrophone }) {
 
 export default function Layout() {
   const { pathname, search } = useLocation();
+  const [showIntro, setShowIntro] = useState(true);
   const [journeyAIOpen, setJourneyAIOpen] = useState(false);
   const [microphonePermission, setMicrophonePermission] = useState("unknown");
   const permissionRequestRef = useRef(null);
@@ -178,6 +180,30 @@ export default function Layout() {
     document.title = `${pathname === "/tracking" ? "Live tracking" : pathname === "/journey" ? "Your journey" : "Discover"} · moveone`;
   }, [pathname]);
 
+  useEffect(() => {
+    if (!showIntro) {
+      return undefined;
+    }
+
+    const previousBodyOverflow = document.body.style.overflow;
+    const previousDocumentOverflow = document.documentElement.style.overflow;
+    document.body.style.overflow = "hidden";
+    document.documentElement.style.overflow = "hidden";
+    const prefersReducedMotion = window.matchMedia(
+      "(prefers-reduced-motion: reduce)",
+    ).matches;
+
+    const timer = window.setTimeout(() => {
+      setShowIntro(false);
+    }, prefersReducedMotion ? 700 : 2450);
+
+    return () => {
+      window.clearTimeout(timer);
+      document.body.style.overflow = previousBodyOverflow;
+      document.documentElement.style.overflow = previousDocumentOverflow;
+    };
+  }, [showIntro]);
+
   return (
     <div className="app-shell">
       <a href="#main-content" className="skip-link">
@@ -228,6 +254,7 @@ export default function Layout() {
         onMicrophoneUnavailable={microphoneUnavailable}
         returnFocusRef={returnFocusRef}
       />
+      {showIntro && <IntroScreen />}
     </div>
   );
 }
