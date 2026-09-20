@@ -168,7 +168,11 @@ function journeyAction(request, conversation) {
     return "accept";
   if (/^(?:read|read out|show)(?: me)?(?: the| my)? directions$/.test(phrase))
     return "directions";
-  if (/^(?:view|show)(?: me)?(?: the| my)? journey$/.test(phrase))
+  if (
+    /^(?:(?:view|show|open|go to)(?: me)?(?: the)?(?: my)? journey(?: page| tab)?|my journey(?: page| tab)?)$/.test(
+      phrase,
+    )
+  )
     return "view";
   if (/^cancel(?: this| the| my)? (?:journey|trip|route)$/.test(phrase))
     return "cancel";
