@@ -191,17 +191,6 @@ export async function renderTicketPng(booking, logoSrc) {
   text(booking.reference, 620, 502, { weight: 600, size: 22 });
   text("Total Fare", 620, 556, { size: 16, color: "#8fa3b7" });
   text(formatFare(booking.total), 620, 590, { weight: 700, size: 28 });
-  ctx.fillStyle = "rgba(52,211,153,0.08)";
-  ctx.strokeStyle = "rgba(52,211,153,0.3)";
-  roundRect(ctx, 620, 622, 200, 96, 12);
-  ctx.fill();
-  ctx.stroke();
-  text("Greener travel", 636, 656, { weight: 600, size: 16 });
-  text(`~ ${booking.emissionsSaved}% lower emissions`, 636, 682, {
-    size: 14,
-    color: "#5eead4",
-  });
-  text("compared to car travel.", 636, 704, { size: 13, color: "#8fa3b7" });
 
   // Footer
   ctx.strokeStyle = "rgba(148,163,184,0.25)";

@@ -9,7 +9,6 @@ import {
   CreditCard,
   Disc3,
   Info,
-  Leaf,
   LoaderCircle,
   Lock,
   LocateFixed,
@@ -446,13 +445,6 @@ function BookingDialog({
                         <dd>{formatFare(route.cost)}</dd>
                       </div>
                     </dl>
-                    <div className="bk-green">
-                      <Leaf size={30} />
-                      <div>
-                        <strong>Greener travel</strong>
-                        <span>~ {route.emissionsSaved}% lower emissions</span>
-                      </div>
-                    </div>
                   </aside>
                 </div>
                 <button type="submit" className="bk-primary">
