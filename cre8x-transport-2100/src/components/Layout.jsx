@@ -69,7 +69,7 @@ function Navigation({
         aria-haspopup="dialog"
       >
         <Sparkles size={18} strokeWidth={1.7} />
-        <span>{mobile ? "AI" : "Journey AI"}</span>
+        <span>Journey AI</span>
       </button>
     </nav>
   );
@@ -185,7 +185,7 @@ export default function Layout() {
   useEffect(() => {
     window.scrollTo(0, 0);
     document.title = `${pathname === "/tracking" ? "Live tracking" : pathname === "/journey" ? "Your journey" : "Discover"} · moveone`;
-  }, [pathname, search]);
+  }, [pathname]);
 
   useEffect(() => {
     if (!showIntro) {
