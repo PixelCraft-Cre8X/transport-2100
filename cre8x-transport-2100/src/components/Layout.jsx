@@ -10,6 +10,7 @@ import {
   Sun,
 } from "lucide-react";
 import logoImage from "../assets/logo.png";
+import profileImage from "../assets/profile-image.png";
 import IntroScreen from "./IntroScreen";
 import JourneyAIPreview from "./JourneyAIPreview";
 import PageTransition from "./PageTransition";
@@ -23,7 +24,12 @@ const links = [
 
 function Brand() {
   return (
-    <NavLink to="/" className="brand" aria-label="moveone home">
+    <NavLink
+      to="/"
+      reloadDocument
+      className="brand"
+      aria-label="moveone home"
+    >
       <img className="brand-logo" src={logoImage} alt="" />
       <span className="brand-name">
         moveone
@@ -95,7 +101,7 @@ function Header({ search, pathname, onOpenAI, requestingMicrophone }) {
             <Globe2 size={15} /> EN
           </span>
           <div className="avatar" aria-label="Demo traveler profile">
-            KA
+            <img src={profileImage} alt="" />
           </div>
         </div>
       </div>
