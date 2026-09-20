@@ -45,14 +45,15 @@ Tap the microphone to pause or resume. Three consecutive silent or unrecognized 
 
 The microphone grant is held only in memory for the current app session and is reused on reopening. Recognition permission/capture errors invalidate it. Browser settings still control actual permission; no permission is stored in localStorage and there is no wake-word or background listening.
 
-The local catalogue contains 29 places. Newly added: Colombo, Moratuwa, Panadura, Beruwala, Bentota, Ambalangoda, Hikkaduwa, Matara, Hambantota, Rathnapura, Nuwara Eliya, Ella, Badulla, Kurunegala, Anuradhapura, Polonnaruwa, Jaffna, Trincomalee, Batticaloa, Negombo, and Katunayake. The existing Airport entry is now canonically Bandaranaike International Airport. Maharagama, Galle, Colombo Fort, Kandy, Port City, Makumbura, and Kalutara remain available.
+Journey AI plans trips between the eight destinations with dedicated photos: Maharagama, Galle, Colombo Fort, Kandy, Bandaranaike International Airport, Port City, Makumbura, and Kalutara. Its available destinations are derived from the `image` fields in `src/data/network.js`. The wider 29-place catalogue remains available to the existing map and journey features. Journey AI asks for an available starting point or destination when a request or existing page selection uses a place outside its current list.
 
-Aliases include Fort, Colombo Fort Station, Airport, BIA, Katunayake Airport, Colombo Airport, Ratnapura, Nuwaraeliya, and Trinco. Minor spelling mistakes such as Anuradapura are tolerated conservatively. Ambiguous matches ask for clarification; unknown places never silently reuse the previous destination.
+Journey AI accepts aliases including Fort, Colombo Fort Station, Airport, BIA, Katunayake Airport, and Colombo Airport. Minor spelling mistakes such as Makumbra and Kaluthara are tolerated conservatively. Names, aliases, and spelling corrections for places without photos do not create Journey AI routes. Ambiguous matches ask for clarification; unavailable or unknown places never silently reuse the previous destination.
 
 Implementation files:
 
 - `src/data/network.js`: canonical locations and aliases. Added town coordinates use [GeoNames](https://download.geonames.org/export/dump/) (CC BY 4.0), rounded where appropriate. Airport coordinates use [Sri Lanka AIP VCBI AD 2.2](https://www.airport.lk/aasl/AIS/AMDT%20WEB/AIP%20FROM%2019%20NOV%202023/htm/37.htm).
 - `src/utils/locationResolver.js`: exact names, aliases, conservative fuzzy matching, and ambiguous results.
+- `src/utils/journeyDestinations.js`: the photo-based Journey AI destination list and availability responses; the wider location resolver remains shared with the rest of the app.
 - `src/utils/journeyIntent.js`: language parsing and preference updates.
 - `src/utils/journeyConversation.js`: modal conversation state, follow-up questions, and alternatives.
 - `src/utils/journeyAI.js`: deterministic filtering/ranking and responses using actual generated route objects.
@@ -74,35 +75,35 @@ npm run lint
 
 Try these separately by voice or text:
 
-- "I want to go to Rathnapura."
-- "I want to go Rathnapura."
-- "Rathnapura please."
-- "Take me from Colombo to Rathnapura."
-- "Give me the fastest way to Matara."
-- "I want to visit Nuwara Eliya but I can't walk much."
+- "I want to go to Galle."
+- "I want to go Galle."
+- "Galle please."
+- "Take me from Colombo Fort to Galle."
+- "Give me the fastest way to Kalutara."
+- "I want to visit Port City but I can't walk much."
 - "I'm travelling with my grandmother to Kandy."
-- "Take me to Jaffna as cheaply as possible."
+- "Take me to Makumbura as cheaply as possible."
 - "Get me to the airport without an air taxi."
 - "Take me to Galle, no bus please."
 
 Keep the modal open and try this sequence:
 
-1. "Take me to Rathnapura."
+1. "Take me to Galle."
 2. "Fastest."
 3. "No air taxi."
 4. "Make it cheaper."
 5. "How long will it take?"
 6. "How much does it cost?"
 7. "What about Kandy instead?"
-8. "Start from Colombo."
+8. "Start from Colombo Fort."
 9. "Do you have another option?"
 10. "What's the next fastest?"
 
 Also ask "How many transfers?", "How much walking?", "Which transport will I use?", "Is it step free?", and "Why did you choose this?". Questions should retain the selected route. "Is there a cheaper one?" only claims savings when the generated fare is actually lower. "Allow bus and rail" removes those exclusions explicitly.
 
-For clarification, try "I need a journey." followed by "Rathnapura."; "Take me to Atlantis" followed by "Matara"; or "Take me to Colombo Fort or Port City" followed by "Port City". Check View journey and Start tracking retain the recommendation's places, route and walking setting. Deny microphone access to check the text fallback.
+For clarification, try "I need a journey." followed by "Galle."; "Take me to Atlantis" followed by "Kalutara"; or "Take me to Colombo Fort or Port City" followed by "Port City". Check View journey and Start tracking retain the recommendation's places, route and walking setting. Deny microphone access to check the text fallback.
 
-For the hands-free check, open Journey AI and allow access, wait for the greeting to finish, then say “I want to go to Rathnapura.”, “Make it fastest.”, “Don't use air taxi.” and “How much will it cost?” after each reply. The destination must stay Rathnapura and the cost must match the current route. Do not press the microphone between turns. Wait for three silent turns, confirm it pauses, tap once to resume, then end and close the conversation. Verify no audio restarts. Reopen to check grant reuse; test voice followed by typed “make it cheaper” to check shared context.
+For the hands-free check, open Journey AI and allow access, wait for the greeting to finish, then say “I want to go to Galle.”, “Make it fastest.”, “Don't use air taxi.” and “How much will it cost?” after each reply. The destination must stay Galle and the cost must match the current route. Do not press the microphone between turns. Wait for three silent turns, confirm it pauses, tap once to resume, then end and close the conversation. Verify no audio restarts. Reopen to check grant reuse; test voice followed by typed “make it cheaper” to check shared context.
 
 ### Microphone troubleshooting
 
@@ -123,4 +124,4 @@ See [Chrome microphone help](https://support.google.com/chrome/answer/2693767) a
 
 ### Limits
 
-Language understanding uses local English phrase rules, not an unrestricted language model. Planning currently covers the local catalogue; optional geocoding does not add transport availability. All services, fares, timings and paths are generated for the Sri Lanka 2100 demo, not live transport data. Comfort and Eco use existing route metadata; crowd levels, seat availability, emissions measurements and vehicle accessibility equipment are not inferred. Walking paths marked step-free do not establish accessibility of vehicle boarding. Actual speech recognition and voices depend on the browser; automated checks simulate speech and microphone events. Verify actual audio on a supported device.
+Language understanding uses local English phrase rules, not an unrestricted language model. Journey AI planning currently covers the eight destinations with dedicated photos; optional geocoding does not add transport availability. All services, fares, timings and paths are generated for the Sri Lanka 2100 demo, not live transport data. Comfort and Eco use existing route metadata; crowd levels, seat availability, emissions measurements and vehicle accessibility equipment are not inferred. Walking paths marked step-free do not establish accessibility of vehicle boarding. Actual speech recognition and voices depend on the browser; automated checks simulate speech and microphone events. Verify actual audio on a supported device.

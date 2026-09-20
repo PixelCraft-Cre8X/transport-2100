@@ -28,9 +28,9 @@ const statusLabels = {
 };
 
 const planningExamples = [
-  "Take me to Rathnapura",
+  "Take me to Galle",
   "Fastest route to Kandy",
-  "Cheapest route to Galle",
+  "Cheapest route to Kalutara",
   "I need less walking",
 ];
 const followUpExamples = [

@@ -1,9 +1,9 @@
-import { locations } from "../data/network.js";
 import {
-  findLocation,
-  normalizeRequest,
-  resolveLocation,
-} from "./locationResolver.js";
+  journeyDestinations,
+  resolveJourneyDestination,
+  unavailableJourneyDestination,
+} from "./journeyDestinations.js";
+import { findLocation, normalizeRequest } from "./locationResolver.js";
 
 const lowWalkingPattern =
   /\b(wheelchair|wheel chair|accessible|accessibility|step free|barrier free|less walking|minimum walking|minimi[sz]e walking|difficulty walking|hard to walk|can't walk (?:far|much)|cannot walk (?:far|much)|leg problem|elderly|grandmother|grandfather|senior|older person|older adult|walk less|no walking|travell?ing with (?:a child|children|kids|luggage))\b/;
@@ -71,7 +71,7 @@ export function parseJourneyRequest(text, context = {}) {
   let from =
     context.pendingPlace?.role === "from"
       ? contextFrom
-      : (contextFrom ?? locations[0]);
+      : (contextFrom ?? journeyDestinations[0]);
   let to = contextTo;
   let clarification;
   let assignedFrom = false;
@@ -79,7 +79,7 @@ export function parseJourneyRequest(text, context = {}) {
   const clauses = [];
 
   function assign(phrase, role) {
-    const resolved = resolveLocation(phrase);
+    const resolved = resolveJourneyDestination(phrase);
     if (role === "from") assignedFrom = true;
     else assignedTo = true;
     if (resolved.status === "resolved") {
@@ -111,12 +111,14 @@ export function parseJourneyRequest(text, context = {}) {
   // "Maharagama to Kandy" also supplies an origin without saying "from".
   const firstDestination = clauses.find(({ role }) => role === "to");
   if (!assignedFrom && firstDestination) {
-    const prefix = resolveLocation(
+    const prefix = resolveJourneyDestination(
       request.slice(0, firstDestination.index).trim(),
     );
     if (prefix.status === "resolved") {
       from = prefix.location;
       assignedFrom = true;
+    } else if (prefix.status === "unsupported") {
+      assign(prefix.query, "from");
     }
   }
 
@@ -153,7 +155,7 @@ export function parseJourneyRequest(text, context = {}) {
 
   if (!clauses.length) {
     const bare = placePhrase(request.replace(/^(?:please|actually)\s+/, ""));
-    const resolved = resolveLocation(bare);
+    const resolved = resolveJourneyDestination(bare);
     if (resolved.status !== "unknown")
       assign(bare, context.pendingPlace?.role ?? "to");
     else if (
@@ -173,10 +175,26 @@ export function parseJourneyRequest(text, context = {}) {
   )
     clarification ??= context.pendingPlace;
 
+  // Existing page context must obey the same availability rules as new requests.
+  if (from && !journeyDestinations.includes(from)) {
+    clarification ??= { role: "from", status: "unsupported" };
+    from = undefined;
+  }
+  if (to && !journeyDestinations.includes(to)) {
+    clarification ??= { role: "to", status: "unsupported" };
+    to = undefined;
+  }
+
   let error;
-  if (!request || clarification?.status === "missing" || (!to && !clarification)) {
+  if (
+    !request ||
+    clarification?.status === "missing" ||
+    (!to && !clarification)
+  ) {
     error = "Of course. Where would you like to go?";
     clarification = { role: "to", status: "missing" };
+  } else if (clarification?.status === "unsupported") {
+    error = unavailableJourneyDestination(clarification.role);
   } else if (clarification?.status === "ambiguous") {
     error = `Did you mean ${clarification.candidates.map(({ name }) => name).join(" or ")}?`;
   } else if (clarification) {

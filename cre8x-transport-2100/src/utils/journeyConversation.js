@@ -1,5 +1,9 @@
 import { buildRoutes, formatFare, journeyQuery } from "../data/journeys.js";
-import { locations, transportModes } from "../data/network.js";
+import { transportModes } from "../data/network.js";
+import {
+  journeyDestinations,
+  unavailableJourneyDestination,
+} from "./journeyDestinations.js";
 import { parseJourneyRequest } from "./journeyIntent.js";
 import { createJourneyAIResponse, recommendJourney } from "./journeyAI.js";
 import {
@@ -10,7 +14,7 @@ import {
 
 /** Modal-local memory, optionally seeded from the actual Journey/Tracking selection. */
 export function createJourneyConversation(context = {}) {
-  const from = findLocation(context.from) ?? locations[0];
+  const from = findLocation(context.from) ?? journeyDestinations[0];
   const to = findLocation(context.to);
   const conversation = {
     from: from.name,
@@ -25,7 +29,17 @@ export function createJourneyConversation(context = {}) {
     accepted: false,
     awaitingStart: false,
   };
-  if (to && to !== from) {
+  const unsupportedRole = !journeyDestinations.includes(from)
+    ? "from"
+    : to && !journeyDestinations.includes(to)
+      ? "to"
+      : null;
+  if (unsupportedRole)
+    conversation.pendingPlace = {
+      role: unsupportedRole,
+      status: "unsupported",
+    };
+  if (to && to !== from && !unsupportedRole) {
     const route = buildRoutes(from, to, conversation.walking).find(
       ({ id }) => id === conversation.style,
     );
@@ -169,7 +183,9 @@ function selectJourney(conversation, start) {
   if (!journey || conversation.pendingPlace)
     return withAnswer(
       conversation,
-      "Let's find a route first. Where would you like to go?",
+      conversation.pendingPlace?.status === "unsupported"
+        ? unavailableJourneyDestination(conversation.pendingPlace.role)
+        : "Let's find a route first. Where would you like to go?",
     );
   const selected = {
     ...conversation,
