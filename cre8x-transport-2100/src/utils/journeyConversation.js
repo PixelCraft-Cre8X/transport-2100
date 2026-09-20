@@ -1,4 +1,4 @@
-import { buildRoutes, formatFare } from "../data/journeys.js";
+import { buildRoutes, formatFare, journeyQuery } from "../data/journeys.js";
 import { locations, transportModes } from "../data/network.js";
 import { parseJourneyRequest } from "./journeyIntent.js";
 import { createJourneyAIResponse, recommendJourney } from "./journeyAI.js";
@@ -19,6 +19,11 @@ export function createJourneyConversation(context = {}) {
     walking: context.walking === "low" ? "low" : "include",
     avoidModes: [...(context.avoidModes ?? [])],
     seenRouteIds: [],
+    recommendedRoute: null,
+    selectedRoute: null,
+    selectedJourney: null,
+    accepted: false,
+    awaitingStart: false,
   };
   if (to && to !== from) {
     const route = buildRoutes(from, to, conversation.walking).find(
@@ -40,7 +45,13 @@ export function createJourneyConversation(context = {}) {
           .filter(Boolean),
       };
       conversation.route = route;
+      conversation.recommendedRoute = route;
       conversation.seenRouteIds = [route.id];
+      if (context.accepted) {
+        conversation.accepted = true;
+        conversation.selectedRoute = route;
+        conversation.selectedJourney = conversation.lastResult;
+      }
     }
   }
   return conversation;
@@ -110,12 +121,133 @@ function withAnswer(conversation, message) {
   return { conversation, result };
 }
 
+function journeyAction(request, conversation) {
+  const phrase = request
+    .replace(/[.,!?]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .replace(/^(?:please|can you|could you)\s+|\s+please$/g, "");
+  if (/^(?:yes|yeah|yep|sure|okay|ok)$/.test(phrase))
+    return conversation.accepted && conversation.awaitingStart
+      ? "start"
+      : "confirm";
+  if (/^(?:no|no thanks|not yet|not now)$/.test(phrase)) return "wait";
+  if (/^(?:let's|let us) go$/.test(phrase))
+    return conversation.accepted ? "start" : "accept";
+  if (
+    /^(?:(?:yes|okay|ok) )?(?:start(?: (?:this|the|my))?(?: (?:journey|trip|route|tracking|navigation|live guidance))?|begin (?:navigation|tracking|guidance|the journey)|guide me|take me there)$/.test(
+      phrase,
+    )
+  )
+    return "start";
+  if (
+    /^(?:(?:yes|okay|ok) )?(?:(?:i'll|i will|i want to) )?(?:take|choose|select|use|go with) (?:this|that)(?: one| route| journey| trip)?$/.test(
+      phrase,
+    ) ||
+    /^(?:this|that)(?: one| route| journey| trip)? (?:is )?(?:fine|good|okay|ok)$/.test(
+      phrase,
+    ) ||
+    /^(?:yes|okay|ok) (?:this|that)(?: one| route| journey| trip)?$/.test(
+      phrase,
+    )
+  )
+    return "accept";
+  if (/^(?:read|read out|show)(?: me)?(?: the| my)? directions$/.test(phrase))
+    return "directions";
+  if (/^cancel(?: this| the| my)? (?:journey|trip|route)$/.test(phrase))
+    return "cancel";
+  if (
+    /^(?:i (?:don't|do not) like (?:this|that)(?: one| route| journey)?|(?:show|give) me another one|change(?: this| the| my)? route)$/.test(
+      phrase,
+    )
+  )
+    return "another";
+}
+
+function selectJourney(conversation, start) {
+  const journey = conversation.selectedJourney ?? conversation.lastResult;
+  if (!journey || conversation.pendingPlace)
+    return withAnswer(
+      conversation,
+      "Let's find a route first. Where would you like to go?",
+    );
+  const selected = {
+    ...conversation,
+    selectedJourney: journey,
+    selectedRoute: journey.route,
+    accepted: true,
+    awaitingStart: !start,
+  };
+  const turn = withAnswer(
+    selected,
+    start
+      ? "Journey started. I'll guide you along the way."
+      : `Great. I've selected this journey to ${journey.to.name}. Would you like me to start live guidance?`,
+  );
+  if (start) {
+    const query = journeyQuery(
+      journey.from.name,
+      journey.to.name,
+      journey.route.id,
+      journey.intent.walking,
+    );
+    turn.navigation = `/tracking?${query}`;
+  }
+  return turn;
+}
+
 /** A pure turn reducer: voice and text use exactly the same context and route engine. */
 export function handleJourneyRequest(
   text,
   conversation = createJourneyConversation(),
 ) {
   const request = normalizeRequest(text);
+  const action = journeyAction(request, conversation);
+  if (action === "accept" || action === "start")
+    return selectJourney(conversation, action === "start");
+  if (action === "confirm")
+    return withAnswer(
+      conversation,
+      conversation.lastResult
+        ? "You can say “I'll take this one” to select this journey, or “Start tracking” when you're ready."
+        : "Where would you like to go? I'll find a route for you.",
+    );
+  if (action === "wait")
+    return withAnswer(
+      { ...conversation, awaitingStart: false },
+      conversation.accepted
+        ? "Your journey is still selected. Say “Start tracking” whenever you're ready."
+        : "You can ask for another route or tell me what you'd like to change.",
+    );
+  if (action === "cancel") {
+    return {
+      conversation: {
+        ...conversation,
+        route: null,
+        recommendedRoute: null,
+        lastResult: null,
+        selectedRoute: null,
+        selectedJourney: null,
+        accepted: false,
+        awaitingStart: false,
+        seenRouteIds: [],
+      },
+      result: {
+        status: "info",
+        message:
+          "Journey cancelled. Tell me where you'd like to go when you're ready.",
+      },
+    };
+  }
+  if (action === "directions") {
+    const journey = conversation.selectedJourney ?? conversation.lastResult;
+    return withAnswer(
+      conversation,
+      journey
+        ? `From ${journey.from.name} to ${journey.to.name}: ${journey.route.segments.map((segment) => `${segment.name}, ${segment.minutes} minutes`).join(". ")}.`
+        : "Let's find a route first. Where would you like to go?",
+    );
+  }
   const question = questionKind(request);
   if (question) {
     if (conversation.pendingPlace)
@@ -133,9 +265,13 @@ export function handleJourneyRequest(
     );
   }
 
-  const intent = parseJourneyRequest(text, conversation);
+  const intent = parseJourneyRequest(
+    action === "another" ? "Show me another option" : text,
+    conversation,
+  );
   const nextFastest = /\bnext fastest\b/.test(request);
   const another =
+    action === "another" ||
     /\b(?:another|different|alternative) (?:option|route|journey)\b|\ban alternative\b/.test(
       request,
     );
@@ -168,7 +304,13 @@ export function handleJourneyRequest(
     sameConstraints
   )
     return withAnswer(
-      conversation,
+      {
+        ...conversation,
+        selectedJourney: null,
+        selectedRoute: null,
+        accepted: false,
+        awaitingStart: false,
+      },
       nextFastest
         ? result.message
         : "I've shown all the options matching your current preferences. You can change your preferences to explore more.",
@@ -201,11 +343,24 @@ export function handleJourneyRequest(
     accessibility: intent.accessibility,
     pendingPlace: intent.clarification,
     seenRouteIds,
+    recommendedRoute: null,
+    selectedRoute: null,
+    selectedJourney: null,
+    accepted: false,
+    awaitingStart: false,
   };
   if (result.status === "success") {
     updated.lastResult = { ...result, message: undefined, kind: undefined };
     updated.route = result.route;
+    updated.recommendedRoute = result.route;
     updated.seenRouteIds = [...new Set([...seenRouteIds, result.route.id])];
+    // A factual answer about the same selected route doesn't undo acceptance.
+    if (result.route === conversation.selectedRoute && sameConstraints) {
+      updated.selectedRoute = conversation.selectedRoute;
+      updated.selectedJourney = conversation.selectedJourney;
+      updated.accepted = conversation.accepted;
+      updated.awaitingStart = conversation.awaitingStart;
+    }
   }
   // On unresolved places or impossible constraints, do not answer about a stale trip.
   return { conversation: updated, result };
