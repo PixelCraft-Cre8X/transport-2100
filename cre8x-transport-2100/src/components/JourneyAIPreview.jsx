@@ -31,7 +31,7 @@ const statusLabels = {
 };
 
 const planningExamples = [
-  "Take me to Galle",
+  "Take me to Kandy",
   "Fastest route to Kandy",
   "Cheapest route to Kalutara",
   "I need less walking",
