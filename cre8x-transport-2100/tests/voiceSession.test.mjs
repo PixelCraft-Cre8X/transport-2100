@@ -4,11 +4,19 @@ import {
   createVoiceSession,
   voiceGreeting,
 } from "../src/utils/voiceSession.js";
+import { primeSpeechSynthesis } from "../src/utils/speechSynthesis.js";
 
 class Clock {
   now = 0;
   next = 0;
   tasks = new Map();
+  microtasks = [];
+  queueMicrotask(fn) {
+    this.microtasks.push(fn);
+  }
+  flushMicrotasks() {
+    while (this.microtasks.length) this.microtasks.shift()();
+  }
   setTimeout(fn, delay = 0) {
     const id = ++this.next;
     this.tasks.set(id, { fn, at: this.now + delay });
@@ -18,6 +26,7 @@ class Clock {
     this.tasks.delete(id);
   }
   advance(ms = 0) {
+    this.flushMicrotasks();
     const target = this.now + ms;
     let count = 0;
     while (true) {
@@ -29,6 +38,7 @@ class Clock {
       this.tasks.delete(next[0]);
       this.now = next[1].at;
       next[1].fn();
+      this.flushMicrotasks();
     }
     this.now = target;
   }
@@ -43,22 +53,48 @@ function harness(overrides = {}) {
     requests = [],
     failures = [];
   let permissionRequests = 0;
+  const voiceListeners = new Set();
   const synthesis = {
     speaking: false,
     pending: false,
+    voices: overrides.voices ?? [{ lang: "en-US" }],
+    getVoices() {
+      if (overrides.voicesError) throw new Error("Voice list unavailable");
+      return this.voices;
+    },
+    addEventListener(event, listener) {
+      assert.equal(event, "voiceschanged");
+      voiceListeners.add(listener);
+    },
+    removeEventListener(event, listener) {
+      assert.equal(event, "voiceschanged");
+      voiceListeners.delete(listener);
+    },
+    voicesChanged() {
+      for (const listener of voiceListeners) listener();
+    },
     speak(utterance) {
       assert.ok(
         engines.every((engine) => !engine.running),
         "recognition ends before speech starts",
       );
-      this.speaking = true;
+      if (overrides.speechError) throw new Error("Speech unavailable");
       utterances.push(utterance);
+      this.pending = true;
+      if (overrides.autoSpeechStart !== false) this.start();
+    },
+    start() {
+      this.pending = false;
+      this.speaking = true;
+      utterances.at(-1).onstart?.();
     },
     cancel() {
       this.speaking = false;
+      this.pending = false;
     },
     finish() {
       this.speaking = false;
+      this.pending = false;
       utterances.at(-1).onend?.();
     },
   };
@@ -135,6 +171,7 @@ function harness(overrides = {}) {
     transcripts,
     requests,
     failures,
+    voiceListeners,
     open,
     finishSpeech,
     permissionRequests: () => permissionRequests,
@@ -148,6 +185,8 @@ test("explicit opening greets, then completes multiple automatic voice turns", (
   assert.equal(h.engines.length, 0);
   h.open();
   assert.equal(h.utterances[0].text, voiceGreeting);
+  assert.equal(h.utterances[0].lang, "en-US");
+  assert.equal(h.session.getState().greetingRetryAvailable, false);
   assert.equal(h.session.getState().status, "greeting");
   assert.equal(h.engines.length, 0);
   h.finishSpeech();
@@ -442,5 +481,174 @@ test("a stalled recognition stop cannot overlap audio or block typed requests", 
   h.clock.advance();
   assert.equal(h.requests.length, 2);
   assert.equal(h.session.getState().status, "result");
+  h.session.dispose();
+});
+
+test("speech priming runs synchronously, muted, and leaves no queued welcome", () => {
+  const calls = [];
+  class Utterance {
+    constructor(text) {
+      this.text = text;
+    }
+  }
+  primeSpeechSynthesis({
+    Utterance,
+    synthesis: {
+      speak(speech) {
+        assert.equal(speech.volume, 0);
+        assert.equal(speech.text.trim(), "");
+        calls.push("prime");
+      },
+      cancel() { calls.push("cancel"); },
+    },
+  });
+  calls.push("permission request");
+  assert.deepEqual(calls, ["cancel", "prime", "cancel", "permission request"]);
+  assert.doesNotThrow(() => primeSpeechSynthesis({ synthesis: null, Utterance }));
+  assert.doesNotThrow(() => primeSpeechSynthesis({
+    Utterance,
+    synthesis: { cancel() {}, speak() { throw new Error("Blocked"); } },
+  }));
+});
+
+test("the first greeting waits for voiceschanged and speaks only once", () => {
+  const h = harness({ voices: [] });
+  h.open();
+  assert.equal(h.utterances.length, 0);
+  assert.equal(h.engines.length, 0);
+  assert.equal(h.voiceListeners.size, 1);
+  h.synthesis.voicesChanged();
+  h.clock.advance(500);
+  assert.equal(h.utterances.length, 0, "an empty event does not end the wait");
+  h.synthesis.voices = [{ lang: "en-GB" }];
+  h.synthesis.voicesChanged();
+  assert.equal(h.utterances.length, 1);
+  assert.equal(h.voiceListeners.size, 0);
+  h.synthesis.voicesChanged();
+  h.clock.advance(5000);
+  assert.equal(h.utterances.length, 1);
+  assert.equal(h.engines.length, 0, "a long greeting must finish before listening");
+  assert.equal(h.session.getState().greetingRetryAvailable, false);
+  h.finishSpeech();
+  assert.equal(h.engines.length, 1);
+  h.session.dispose();
+});
+
+test("empty or inaccessible voice lists time out and still use browser speech", () => {
+  for (const voicesError of [false, true]) {
+    const h = harness({ voices: [], voicesError });
+    h.open();
+    h.clock.advance(599);
+    assert.equal(h.utterances.length, 0);
+    h.clock.advance(1);
+    assert.equal(h.utterances.length, 1);
+    assert.equal(h.utterances[0].lang, "en-US");
+    assert.equal(h.utterances[0].voice, undefined, "no named voice is required");
+    assert.equal(h.voiceListeners.size, 0);
+    h.finishSpeech();
+    assert.equal(h.session.getState().status, "listening");
+    h.session.dispose();
+  }
+});
+
+test("ending, closing or typing cancels voice readiness and its late callbacks", () => {
+  for (const action of ["end", "dispose", "beginTyping"]) {
+    const h = harness({ voices: [] });
+    h.open();
+    const lateChanged = [...h.voiceListeners][0];
+    h.session[action]();
+    h.synthesis.voices = [{ lang: "en-US" }];
+    lateChanged();
+    h.clock.advance(10000);
+    assert.equal(h.voiceListeners.size, 0);
+    assert.equal(h.clock.tasks.size, 0);
+    assert.equal(h.utterances.length, 0);
+    assert.equal(h.engines.length, 0);
+    assert.equal(h.session.getState().greetingRetryAvailable, false);
+    h.session.dispose();
+  }
+});
+
+test("a silently blocked greeting offers direct speech recovery without early listening", () => {
+  const h = harness({ autoSpeechStart: false });
+  h.open();
+  const first = h.utterances[0];
+  const lateStart = first.onstart;
+  const lateEnd = first.onend;
+  h.clock.advance(1999);
+  assert.equal(h.session.getState().greetingRetryAvailable, false);
+  h.clock.advance(1);
+  assert.equal(h.session.getState().greetingRetryAvailable, true);
+  assert.equal(h.session.getState().status, "paused");
+  assert.match(h.session.getState().notice, /greeting couldn’t play/);
+  assert.equal(h.engines.length, 0);
+  assert.equal(h.synthesis.pending, false, "discard the blocked utterance");
+  lateStart();
+  lateEnd();
+  h.clock.advance(200);
+  assert.equal(h.engines.length, 0, "stale greeting callbacks cannot start listening");
+  h.synthesis.voices = [];
+  h.session.retryGreeting();
+  assert.equal(h.utterances.length, 2, "retry must speak in the click, before any wait");
+  assert.equal(h.utterances[1].text, voiceGreeting);
+  assert.equal(h.voiceListeners.size, 0);
+  assert.equal(h.session.getState().greetingRetryAvailable, false);
+  h.session.retryGreeting();
+  assert.equal(h.utterances.length, 2, "repeated clicks cannot duplicate the greeting");
+  h.synthesis.start();
+  h.clock.advance(5000);
+  assert.equal(h.engines.length, 0);
+  h.finishSpeech();
+  assert.equal(h.engines.length, 1);
+  assert.equal(h.session.getState().status, "listening");
+  h.session.dispose();
+});
+
+test("greeting errors and an end event without start both offer recovery", () => {
+  for (const outcome of ["error", "silent-end", "throw"]) {
+    const h = harness({ autoSpeechStart: false, speechError: outcome === "throw" });
+    h.open();
+    if (outcome === "error") h.utterances[0].onerror({ error: "not-allowed" });
+    if (outcome === "silent-end") h.synthesis.finish();
+    h.clock.advance(5000);
+    assert.equal(h.session.getState().greetingRetryAvailable, true);
+    assert.equal(h.engines.length, 0);
+    h.session.end();
+    h.session.retryGreeting();
+    assert.equal(h.session.getState().greetingRetryAvailable, false);
+    assert.equal(h.engines.length, 0);
+    h.session.dispose();
+  }
+});
+
+test("manual microphone and text controls remain usable after a blocked greeting", () => {
+  const mic = harness({ autoSpeechStart: false });
+  mic.open();
+  mic.clock.advance(2000);
+  mic.session.toggle();
+  assert.equal(mic.session.getState().status, "listening");
+  assert.equal(mic.session.getState().greetingRetryAvailable, false);
+  mic.session.dispose();
+
+  const text = harness({ autoSpeechStart: false });
+  text.open();
+  text.clock.advance(2000);
+  text.session.beginTyping();
+  text.session.submit("Take me to Kandy", "text");
+  text.clock.advance();
+  assert.equal(text.requests[0].text, "Take me to Kandy");
+  assert.equal(text.session.getState().greetingRetryAvailable, false);
+  text.session.dispose();
+});
+
+test("microphone denial never attempts an automatic greeting or speech fallback", () => {
+  const h = harness({ permission: "denied" });
+  h.open();
+  h.clock.advance(10000);
+  assert.equal(h.utterances.length, 0);
+  assert.equal(h.session.getState().greetingRetryAvailable, false);
+  h.session.submit("Take me to Kandy");
+  h.clock.advance();
+  assert.equal(h.requests.length, 1);
   h.session.dispose();
 });

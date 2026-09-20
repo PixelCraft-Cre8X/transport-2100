@@ -103,6 +103,10 @@
   border: 0;
 }
 
+.jm-options-dots {
+  display: none;
+}
+
 .jm-choices > h2 {
   margin-bottom: 14px;
   font-size: var(--text-lg);
@@ -964,6 +968,52 @@
 @media (max-width: 767px) {
   .jm-map {
     height: 340px;
+  }
+
+  .jm-options {
+    display: flex;
+    gap: 14px;
+    margin-inline: -2px;
+    padding: 2px 2px 8px;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    scrollbar-width: none;
+  }
+
+  .jm-options::-webkit-scrollbar {
+    display: none;
+  }
+
+  .jm-options .jm-route {
+    flex: 0 0 min(88vw, 350px);
+    scroll-snap-align: start;
+  }
+
+  .jm-options-dots {
+    display: flex;
+    justify-content: center;
+    gap: 7px;
+    margin-top: 10px;
+  }
+
+  .jm-options-dots button {
+    width: 6px;
+    height: 6px;
+    padding: 0;
+    border: 0;
+    border-radius: 999px;
+    background: rgba(148, 163, 184, 0.38);
+    cursor: pointer;
+    transition:
+      width 0.2s ease,
+      background 0.2s ease,
+      box-shadow 0.2s ease;
+  }
+
+  .jm-options-dots button.active {
+    width: 20px;
+    background: var(--cyan);
+    box-shadow: 0 0 10px rgba(34, 211, 238, 0.45);
   }
 }
 

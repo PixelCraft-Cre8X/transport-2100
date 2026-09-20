@@ -45,7 +45,7 @@ test("Journey AI greeting follows the current journey context", () => {
 
   assert.equal(
     getAIContext({ pathname: "/", from: null, to: null, route: null }).greeting,
-    "Hi, I’m Journey AI. Where would you like to go?",
+    " Hi, I’m Journey AI. Where would you like to go?",
   );
   assert.match(
     getAIContext({ pathname: "/journey", from, to, route: null }).greeting,

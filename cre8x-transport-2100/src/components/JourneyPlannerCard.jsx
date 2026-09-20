@@ -36,7 +36,7 @@ export default function JourneyPlannerCard() {
           <span>
             <span className="field-label">FROM</span>
             <GlassSelect
-              aria-label="Starting location"
+              ariaLabel="Starting location"
               className="location-select"
               options={journeyDestinations.map((location) => ({
                 label: location.name,
@@ -70,7 +70,7 @@ export default function JourneyPlannerCard() {
           <span>
             <span className="field-label">TO</span>
             <GlassSelect
-              aria-label="Destination"
+              ariaLabel="Destination"
               className="location-select"
               options={journeyDestinations.map((location) => ({
                 label: location.name,
