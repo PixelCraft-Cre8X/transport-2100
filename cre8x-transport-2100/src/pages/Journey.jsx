@@ -12,10 +12,12 @@ import {
   readJourney,
   journeyQuery,
   formatFare,
+  clockTime,
   withStartTimes,
 } from "../data/journeys";
 import { ModeIcon } from "../components/UI";
 import JourneyMap from "../components/JourneyMap";
+import BookingModal from "../components/BookingModal";
 import DestinationArt from "../components/DestinationArt";
 import "./Journey.css";
 
@@ -68,29 +70,58 @@ export default function Journey() {
   const steps = withStartTimes(selected.segments);
   const query = journeyQuery(from.name, to.name, selected.id, walking);
   const optionsRef = useRef(null);
+  const [visibleIndex, setVisibleIndex] = useState(0);
   const [saved, setSaved] = useState(false);
+  const [bookingOpen, setBookingOpen] = useState(false);
 
   const choose = (style) =>
     setParams(journeyQuery(from.name, to.name, style, walking));
 
-  // On phones the routes sit in a sideways carousel; keep the chosen one centred
-  // (scrolling the carousel itself, never the page).
-  useEffect(() => {
+  // On phones the routes sit in a sideways carousel. Scroll it (never the page)
+  // so that a card is centred.
+  const centreCard = (card, behavior = "smooth") => {
     const list = optionsRef.current;
-    const card = list?.querySelector(".jm-route.selected");
-    if (!card || list.scrollWidth <= list.clientWidth) return;
+    if (!card || !list || list.scrollWidth <= list.clientWidth) return;
     list.scrollTo({
       left: card.offsetLeft - (list.clientWidth - card.clientWidth) / 2,
-      behavior: "smooth",
+      behavior,
     });
+  };
+
+  // Keep the chosen route in view.
+  useEffect(() => {
+    centreCard(optionsRef.current?.querySelector(".jm-route.selected"));
   }, [selected.id]);
+
+  // The indicator dots follow whichever card is nearest the middle of the
+  // carousel. The first and last cards can never reach the middle, so scrolling
+  // all the way to either end counts as showing that card.
+  const trackVisibleCard = (event) => {
+    const list = event.currentTarget;
+    const cards = [...list.querySelectorAll(".jm-route")];
+    const atStart = list.scrollLeft < 4;
+    const atEnd = list.scrollLeft > list.scrollWidth - list.clientWidth - 4;
+    if (atStart || atEnd) {
+      setVisibleIndex(atStart ? 0 : cards.length - 1);
+      return;
+    }
+    const middle = list.scrollLeft + list.clientWidth / 2;
+    const distance = (card) =>
+      Math.abs(card.offsetLeft + card.clientWidth / 2 - middle);
+    setVisibleIndex(
+      cards.reduce(
+        (best, card, i) => (distance(card) < distance(cards[best]) ? i : best),
+        0,
+      ),
+    );
+  };
 
   return (
     <div className="inner-page jm-page page-enter">
       <div className="jm-layout">
         <div className="jm-left">
-          <Link className="back-link" to="/">
-            <ArrowLeft size={16} /> Back to planner
+          <Link className="back-link" to="/" aria-label="Back to planner">
+            <ArrowLeft size={16} /> Back
           </Link>
           <header className="jm-heading">
             <p className="eyebrow">YOUR ISLAND, YOUR WAY</p>
@@ -109,7 +140,11 @@ export default function Journey() {
 
           <section className="jm-choices" aria-labelledby="jm-choices-title">
             <h2 id="jm-choices-title">Select your journey</h2>
-            <fieldset className="jm-options" ref={optionsRef}>
+            <fieldset
+              className="jm-options"
+              ref={optionsRef}
+              onScroll={trackVisibleCard}
+            >
               <legend className="jm-visually-hidden">Journey options</legend>
               {routes.map((option) => {
                 const isSelected = selected.id === option.id;
@@ -178,6 +213,22 @@ export default function Journey() {
                 );
               })}
             </fieldset>
+            <div className="jm-dots" role="group" aria-label="Choose a journey">
+              {routes.map((option, i) => (
+                <button
+                  key={option.id}
+                  type="button"
+                  className={i === visibleIndex ? "active" : ""}
+                  aria-label={`Show ${option.label}, option ${i + 1} of ${routes.length}`}
+                  aria-current={i === visibleIndex ? "true" : undefined}
+                  onClick={() =>
+                    centreCard(
+                      optionsRef.current?.querySelectorAll(".jm-route")[i],
+                    )
+                  }
+                />
+              ))}
+            </div>
           </section>
         </div>
 
@@ -258,9 +309,14 @@ export default function Journey() {
               </aside>
             </div>
             <div className="jm-actions">
-              <Link className="jm-start" to={`/tracking?${query}`}>
+              <button
+                type="button"
+                className="jm-start"
+                aria-haspopup="dialog"
+                onClick={() => setBookingOpen(true)}
+              >
                 Start journey <ArrowRight size={20} />
-              </Link>
+              </button>
               <button
                 type="button"
                 className={`jm-save ${saved ? "saved" : ""}`}
@@ -274,6 +330,17 @@ export default function Journey() {
           </section>
         </div>
       </div>
+      <BookingModal
+        open={bookingOpen}
+        onClose={() => setBookingOpen(false)}
+        from={from}
+        to={to}
+        steps={steps}
+        route={selected}
+        arrival={clockTime(selected.duration)}
+        dateLabel={departureDate()}
+        trackHref={`/tracking?${query}`}
+      />
     </div>
   );
 }

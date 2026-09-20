@@ -791,6 +791,11 @@
     font-size: 10px;
   }
 
+  /* The bottom navigation already covers going back on phones. */
+  .back-link {
+    display: none;
+  }
+
   .inner-page {
     padding: 30px 20px 24px;
   }

@@ -31,7 +31,9 @@ const TICK_STEP = 0.006;
 
 function nextStepText(segments, index, destination) {
   if (index >= segments.length - 1) return `Welcome to ${destination}`;
-  const rides = segments.slice(index + 1).filter((s) => s.mode !== "walk").length;
+  const rides = segments
+    .slice(index + 1)
+    .filter((s) => s.mode !== "walk").length;
   if (rides > 0) {
     return `Then ${rides} transfer${rides > 1 ? "s" : ""} to ${destination}`;
   }
@@ -126,7 +128,10 @@ export default function Tracking() {
   }, [voice, arrived, to.name]);
 
   const share = async () => {
-    const data = { title: `My journey to ${to.name}`, url: window.location.href };
+    const data = {
+      title: `My journey to ${to.name}`,
+      url: window.location.href,
+    };
     try {
       if (navigator.share) await navigator.share(data);
       else await navigator.clipboard.writeText(data.url);
@@ -140,8 +145,12 @@ export default function Tracking() {
   return (
     <div className="inner-page tk-page page-enter">
       <header className="tk-header">
-        <Link className="back-link" to={`/journey?${query}`}>
-          <ArrowLeft size={16} /> Back to route details
+        <Link
+          className="back-link"
+          to={`/journey?${query}`}
+          aria-label="Back to route details"
+        >
+          <ArrowLeft size={16} /> Back
         </Link>
         <div className="tk-title">
           <h1>On your way to {to.name}.</h1>
@@ -151,9 +160,12 @@ export default function Tracking() {
             <Bell size={18} />
           </button>
           <span className="tk-live">
-            <span className="status-dot" /> {arrived ? "Arrived" : "Live tracking"}
+            <span className="status-dot" />{" "}
+            {arrived ? "Arrived" : "Live tracking"}
           </span>
-          <time className="tk-clock">{clockTime(elapsed, { seconds: true })}</time>
+          <time className="tk-clock">
+            {clockTime(elapsed, { seconds: true })}
+          </time>
         </div>
       </header>
 
@@ -188,11 +200,27 @@ export default function Tracking() {
               <ModeIcon mode={current.mode} size={30} />
             </span>
             <div>
-              <span>{arrived ? "Journey complete" : walkingNow ? "Currently walking" : "Currently riding"}</span>
-              <h2>{arrived ? `Arrived in ${to.name}` : walkingNow ? "On foot" : current.name.split(" · ")[0]}</h2>
+              <span>
+                {arrived
+                  ? "Journey complete"
+                  : walkingNow
+                    ? "Currently walking"
+                    : "Currently riding"}
+              </span>
+              <h2>
+                {arrived
+                  ? `Arrived in ${to.name}`
+                  : walkingNow
+                    ? "On foot"
+                    : current.name.split(" · ")[0]}
+              </h2>
               {!arrived && (
                 <p>
-                  <span className="status-dot" /> {current.delayMinutes > 0 ? `Delayed +${current.delayMinutes} min` : "On schedule"} · {minutesToNext} min to next stop
+                  <span className="status-dot" />{" "}
+                  {current.delayMinutes > 0
+                    ? `Delayed +${current.delayMinutes} min`
+                    : "On schedule"}{" "}
+                  · {minutesToNext} min to next stop
                 </p>
               )}
             </div>
@@ -248,7 +276,10 @@ export default function Tracking() {
             </div>
           </div>
 
-          <RouteTimeline segments={selected.segments} currentIndex={arrived ? segments.length : currentIndex} />
+          <RouteTimeline
+            segments={selected.segments}
+            currentIndex={arrived ? segments.length : currentIndex}
+          />
 
           <div className="tk-actions">
             <button

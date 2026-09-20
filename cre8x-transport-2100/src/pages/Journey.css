@@ -109,6 +109,10 @@
   font-weight: 700;
 }
 
+.jm-dots {
+  display: none;
+}
+
 .jm-visually-hidden {
   position: absolute;
   width: 1px;
@@ -694,6 +698,8 @@
 
 .jm-start {
   display: inline-flex;
+  border: 0;
+  cursor: pointer;
   flex: 1 1 200px;
   align-items: center;
   justify-content: center;
@@ -891,6 +897,46 @@
   .jm-route {
     flex: 0 0 min(86%, 340px);
     scroll-snap-align: center;
+  }
+
+  .jm-dots {
+    display: flex;
+    justify-content: center;
+    gap: 2px;
+    margin-top: -4px;
+  }
+
+  .jm-dots button {
+    display: grid;
+    place-items: center;
+    width: 28px;
+    height: 28px;
+    padding: 0;
+    border: 0;
+    background: none;
+  }
+
+  .jm-dots button::before {
+    content: "";
+    width: 8px;
+    height: 8px;
+    border-radius: 999px;
+    background: #3b5269;
+    transition:
+      width 0.2s,
+      background 0.2s;
+  }
+
+  .jm-dots button.active::before {
+    width: 22px;
+    background: var(--jm-cyan);
+    box-shadow: 0 0 10px rgba(34, 211, 238, 0.5);
+  }
+
+  .jm-dots button:focus-visible {
+    outline: 2px solid var(--cyan);
+    outline-offset: -2px;
+    border-radius: 8px;
   }
 }
 
