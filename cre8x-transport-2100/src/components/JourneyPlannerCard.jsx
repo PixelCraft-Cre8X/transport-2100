@@ -8,7 +8,7 @@ import {
   Circle,
 } from "lucide-react";
 import { journeyQuery } from "../data/journeys";
-import { locations } from "../data/network";
+import { journeyDestinations } from "../utils/journeyDestinations";
 import GlassSelect from "./GlassSelect";
 export default function JourneyPlannerCard() {
   const [from, setFrom] = useState("Maharagama");
