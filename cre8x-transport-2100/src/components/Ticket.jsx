@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { formatFare } from "../data/journeys";
 import { qrMatrix, renderTicketPng } from "../utils/ticketImage";
+import { seatSummary } from "../utils/booking";
 import logo from "../assets/logo.png";
 import "./Ticket.css";
 
@@ -97,7 +98,7 @@ export default function Ticket({ booking, titleId, onClose, children }) {
     }
   };
 
-  const seats = booking.services.map((s) => s.seat).join(" · ");
+  const seatLines = seatSummary(booking);
 
   return (
     <div className="tc">
@@ -172,11 +173,26 @@ export default function Ticket({ booking, titleId, onClose, children }) {
           <dl className="tc-details">
             <div>
               <dt>Passenger</dt>
-              <dd>{booking.name}</dd>
+              <dd>
+                {booking.name}
+                {booking.passengers > 1 && (
+                  <span className="tc-more">
+                    + {booking.passengers - 1} more passenger
+                    {booking.passengers > 2 ? "s" : ""}
+                  </span>
+                )}
+              </dd>
             </div>
             <div>
               <dt>Seat No.</dt>
-              <dd className="big">{seats}</dd>
+              <dd className="big">
+                {seatLines.map((line) => (
+                  <span key={line.label ?? "seats"}>
+                    {line.label && <small>{line.label}</small>}
+                    {line.text}
+                  </span>
+                ))}
+              </dd>
             </div>
             <div>
               <dt>Service</dt>

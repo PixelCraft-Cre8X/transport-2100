@@ -45,7 +45,10 @@ export function useBooking() {
   const raw = useSyncExternalStore(subscribe, read, () => null);
   return useMemo(() => {
     try {
-      return raw ? JSON.parse(raw) : null;
+      const booking = raw ? JSON.parse(raw) : null;
+      // Ignore a booking saved by an older version of the app.
+      const valid = booking?.services?.every((s) => Array.isArray(s.seats));
+      return valid ? booking : null;
     } catch {
       return null;
     }
@@ -67,6 +70,8 @@ export function createBooking({
   const day = departureDay();
   const stamp = `${String(day.getFullYear()).slice(2)}${pad(day.getMonth() + 1)}${pad(day.getDate())}`;
   const rides = steps.filter((s) => s.mode !== "walk");
+  const passengers = seats[rides[0].start].length;
+  const fare = route.cost * passengers;
   return {
     reference: `MVN${stamp}-${Math.floor(1000 + Math.random() * 9000)}`,
     name: passenger.name,
@@ -78,14 +83,15 @@ export function createBooking({
     departure: steps[0].time,
     arrival,
     duration: route.duration,
+    passengers,
     services: rides.map((ride) => ({
       name: ride.name,
       mode: ride.mode,
-      seat: seats[ride.start],
+      seats: seats[ride.start],
     })),
-    fare: route.cost,
+    fare,
     fee: SERVICE_FEE,
-    total: route.cost + SERVICE_FEE,
+    total: fare + SERVICE_FEE,
     emissionsSaved: route.emissionsSaved,
   };
 }
@@ -97,5 +103,14 @@ export const ticketPayload = (b) =>
     b.reference,
     `${b.from}>${b.to}`,
     `${b.date} ${b.departure}`,
-    b.services.map((s) => `${s.name}#${s.seat}`).join(","),
+    b.services.map((s) => `${s.name}#${s.seats.join("+")}`).join(","),
   ].join("|");
+
+/** Seat lines for the ticket: one per ride, labelled only when there are several. */
+export function seatSummary(booking) {
+  const many = booking.services.length > 1;
+  return booking.services.map((service) => ({
+    label: many ? service.name.split(" · ")[0] : null,
+    text: service.seats.join(", "),
+  }));
+}
