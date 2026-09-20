@@ -31,7 +31,7 @@ const initialQuickDestinations = [
   "Colombo Fort",
   "Galle",
   "Kandy",
-  "Airport",
+  "Bandaranaike International Airport",
 ];
 
 export default function Home() {
