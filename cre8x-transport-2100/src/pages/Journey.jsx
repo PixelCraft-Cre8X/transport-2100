@@ -159,6 +159,12 @@ export default function Journey() {
     }
   }
 
+  function toggleDetails() {
+    const scrollY = window.scrollY;
+    setDetailsOpen((open) => !open);
+    requestAnimationFrame(() => window.scrollTo(0, scrollY));
+  }
+
   const choose = (style) =>
     !locked && setParams(journeyQuery(from.name, to.name, style, walking));
 
@@ -341,7 +347,7 @@ export default function Journey() {
               className="jm-details-toggle"
               aria-expanded={detailsOpen}
               aria-controls="journey-details-body"
-              onClick={() => setDetailsOpen((open) => !open)}
+              onClick={toggleDetails}
             >
               <span>Journey details</span>
               <ChevronDown size={18} aria-hidden="true" />
