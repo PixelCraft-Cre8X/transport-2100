@@ -87,9 +87,7 @@ export function buildRoutes(from, to, walking) {
                 : `${to.name} mobility hub`,
           status: mode === "walk" ? "Step-free path" : "On time",
           delayMinutes:
-            mode === "walk"
-              ? 0
-              : demoDelay(from, to, template.id, index),
+            mode === "walk" ? 0 : demoDelay(from, to, template.id, index),
         };
       });
       return {
@@ -104,21 +102,30 @@ export function buildRoutes(from, to, walking) {
 }
 export const formatFare = (cost) => `LKR ${cost.toLocaleString("en-US")}`;
 const DEPARTURE_MINUTES = 9 * 60;
-// Wall-clock time (HH:MM, or HH:MM:SS) `minutes` after the 09:00 demo departure.
-export function clockTime(minutes = 0, { seconds = false } = {}) {
-  const total = Math.round((DEPARTURE_MINUTES + minutes) * 60);
+// Wall-clock time (HH:MM, or HH:MM:SS) `minutes` after departure. `base` is the
+// departure in minutes past midnight and defaults to the 09:00 demo departure.
+export function clockTime(
+  minutes = 0,
+  { seconds = false, base = DEPARTURE_MINUTES } = {},
+) {
+  const total = Math.round((base + minutes) * 60);
   const pad = (n) => String(n).padStart(2, "0");
   const hhmm = `${pad(Math.floor(total / 3600) % 24)}:${pad(Math.floor(total / 60) % 60)}`;
   return seconds ? `${hhmm}:${pad(total % 60)}` : hhmm;
 }
 export const arrivalTime = clockTime;
 // Segments annotated with the minute offset (from departure) at which each begins.
-export function withStartTimes(segments) {
+// "HH:MM" -> minutes past midnight (the 09:00 default if it can't be read).
+export function parseClock(value) {
+  const match = /^(\d{1,2}):(\d{2})$/.exec(value ?? "");
+  return match ? Number(match[1]) * 60 + Number(match[2]) : DEPARTURE_MINUTES;
+}
+export function withStartTimes(segments, base = DEPARTURE_MINUTES) {
   let elapsed = 0;
   return segments.map((segment) => {
     const start = elapsed;
     elapsed += segment.minutes;
-    return { ...segment, start, time: clockTime(start) };
+    return { ...segment, start, time: clockTime(start, { base }) };
   });
 }
 // Illustrative path for the journey map: rides between two south-west coast
@@ -136,7 +143,11 @@ export function routeWaypoints(from, to, { direct = false } = {}) {
       return clearOfEnds && (lat - fromLat) * (toLat - lat) > 0;
     })
     .sort((a, b) => direction * (a.coordinates[1] - b.coordinates[1]));
-  return [from.coordinates, ...between.map((t) => t.coordinates), to.coordinates];
+  return [
+    from.coordinates,
+    ...between.map((t) => t.coordinates),
+    to.coordinates,
+  ];
 }
 
 // The demo departure is always tomorrow at 09:00.
@@ -149,4 +160,14 @@ export function formatDay(day, { year = false } = {}) {
   const weekday = day.toLocaleDateString("en-US", { weekday: "short" });
   const month = day.toLocaleDateString("en-US", { month: "short" });
   return `${weekday}, ${day.getDate()} ${month}${year ? ` ${day.getFullYear()}` : ""}`;
+}
+
+// Date <-> the "YYYY-MM-DD" value of a date input, in local time.
+export function toDateInput(day) {
+  const pad = (n) => String(n).padStart(2, "0");
+  return `${day.getFullYear()}-${pad(day.getMonth() + 1)}-${pad(day.getDate())}`;
+}
+export function fromDateInput(value) {
+  const [year, month, date] = value.split("-").map(Number);
+  return new Date(year, month - 1, date);
 }

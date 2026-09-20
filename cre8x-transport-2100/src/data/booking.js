@@ -9,6 +9,9 @@ export const MOCK_PASSENGER = {
   phone: "77 123 4567",
 };
 
+// Default trip: tomorrow at 09:00, the demo departure.
+export const MOCK_TRIP = { time: "09:00" };
+
 export const MOCK_CARD = {
   cardName: "Kavindu Herath",
   cardNumber: "1234 5678 9012 3456",
