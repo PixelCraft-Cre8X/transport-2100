@@ -22,6 +22,9 @@ const { locations, comparisonTags } = await server.ssrLoadModule(
 const plan = (text, context) => recommend(parse(text, context));
 const { resolveLocation, findLocation, findLocationMentions } =
   await server.ssrLoadModule("/src/utils/locationResolver.js");
+const { journeyDestinations } = await server.ssrLoadModule(
+  "/src/utils/journeyDestinations.js",
+);
 const { createJourneyConversation: start, handleJourneyRequest: turn } =
   await server.ssrLoadModule("/src/utils/journeyConversation.js");
 const { geocodeSriLankanPlace: geocode } = await server.ssrLoadModule(
@@ -44,7 +47,7 @@ function conversationTurns(phrases, conversation = start()) {
 }
 
 test("acceptance remembers the exact recommendation and asks before starting", () => {
-  const recommended = turn("Take me to Rathnapura.");
+  const recommended = turn("Take me to Galle.");
   for (const phrase of [
     "I'll take this one.",
     "I’ll take that one.",
@@ -71,10 +74,7 @@ test("acceptance remembers the exact recommendation and asks before starting", (
       recommended.conversation.lastResult,
     );
     assert.equal(accepted.navigation, undefined, phrase);
-    assert.match(
-      respond(accepted.result),
-      /selected this journey to Rathnapura/,
-    );
+    assert.match(respond(accepted.result), /selected this journey to Galle/);
     assert.match(
       respond(accepted.result),
       /Would you like me to start live guidance/,
@@ -84,7 +84,7 @@ test("acceptance remembers the exact recommendation and asks before starting", (
 
 test("acceptance followed by a start phrase opens the exact accepted journey", () => {
   const accepted = conversationTurns([
-    "Take me from Colombo Fort to Rathnapura with less walking, without air taxi.",
+    "Take me from Colombo Fort to Galle with less walking, without air taxi.",
     "I'll take this one.",
   ]);
   for (const phrase of [
@@ -103,7 +103,7 @@ test("acceptance followed by a start phrase opens the exact accepted journey", (
     assert.equal(url.pathname, "/tracking", phrase);
     const reopened = readJourney(url.searchParams);
     assert.equal(reopened.from.name, "Colombo Fort", phrase);
-    assert.equal(reopened.to.name, "Rathnapura", phrase);
+    assert.equal(reopened.to.name, "Galle", phrase);
     assert.equal(reopened.walking, "low", phrase);
     assert.deepEqual(
       reopened.selected,
@@ -116,7 +116,7 @@ test("acceptance followed by a start phrase opens the exact accepted journey", (
 });
 
 test("cheaper follow-up is the journey selected and opened in Tracking", () => {
-  const recommended = turn("Take me to Rathnapura.");
+  const recommended = turn("Take me to Galle.");
   const cheaper = turn("Make it cheaper.", recommended.conversation);
   assert.ok(cheaper.result.route.cost < recommended.result.route.cost);
   const started = conversationTurns(
@@ -235,9 +235,9 @@ test("questions retain selection, while new route requests clear the previous ac
     turn("Don't start the journey", accepted.conversation).navigation,
     undefined,
   );
-  const newOrigin = turn("Yes, start from Colombo", accepted.conversation);
+  const newOrigin = turn("Yes, start from Colombo Fort", accepted.conversation);
   assert.equal(newOrigin.navigation, undefined);
-  assert.equal(newOrigin.conversation.from, "Colombo");
+  assert.equal(newOrigin.conversation.from, "Colombo Fort");
 });
 
 test("rejecting an accepted route cannot leave a pending start when alternatives run out", () => {
@@ -511,9 +511,9 @@ test("cheaper comparisons use the selected trip's actual fare", () => {
 });
 
 test("responses and navigation preserve every selected route's actual metrics", () => {
-  // Exercise every network pair, walking setting, preference and exclusion subset.
-  for (const from of locations)
-    for (const to of locations) {
+  // Exercise every available AI pair, walking setting, preference and exclusion subset.
+  for (const from of journeyDestinations)
+    for (const to of journeyDestinations) {
       if (from === to) continue;
       for (const walking of ["include", "low"])
         for (const { id: style } of comparisonTags) {
@@ -552,7 +552,128 @@ test("responses and navigation preserve every selected route's actual metrics", 
     }
 });
 
-test("catalogue covers every requested place with unique canonical names and Sri Lankan coordinates", () => {
+test("Journey AI offers exactly the eight destinations with dedicated photos", () => {
+  assert.deepEqual(
+    journeyDestinations.map(({ name }) => name),
+    [
+      "Maharagama",
+      "Galle",
+      "Colombo Fort",
+      "Kandy",
+      "Bandaranaike International Airport",
+      "Port City",
+      "Makumbura",
+      "Kalutara",
+    ],
+  );
+  for (const destination of journeyDestinations) {
+    const from = destination.name === "Maharagama" ? "Kandy" : "Maharagama";
+    const result = plan(`From ${from} to ${destination.name}`);
+    assert.equal(result.status, "success", destination.name);
+    assert.equal(result.to, destination);
+    assert.ok(result.from.image && result.to.image);
+  }
+  for (const phrase of ["Airport", "BIA", "Fort", "Makumbra", "Kaluthara"])
+    assert.equal(plan(`Take me to ${phrase}`).status, "success", phrase);
+});
+
+test("destinations without photos cannot be planned through names, aliases, typos or raw intents", () => {
+  for (const location of locations.filter(({ image }) => !image)) {
+    for (const name of [location.name, ...(location.aliases ?? [])]) {
+      for (const phrase of [
+        `Take me to ${name}`,
+        `From ${name} to Kandy`,
+        `${name} to Kandy`,
+        `Take me to ${name} or Galle`,
+      ]) {
+        const result = plan(phrase, context);
+        assert.equal(result.status, "error", phrase);
+        assert.equal(result.route, undefined, phrase);
+        assert.match(
+          result.message,
+          /isn't available in Journey AI yet/,
+          phrase,
+        );
+        for (const { name: supported } of journeyDestinations)
+          assert.ok(result.message.includes(supported), phrase);
+      }
+    }
+    const intent = {
+      from: "Maharagama",
+      to: location.name,
+      walking: "include",
+      style: "fastest",
+      avoidModes: [],
+    };
+    assert.equal(recommend(intent).status, "error", location.name);
+    assert.equal(
+      recommend({ ...intent, from: location.name, to: "Kandy" }).status,
+      "error",
+      location.name,
+    );
+  }
+  assert.equal(
+    plan("Take me to Rathnpura").clarification.status,
+    "unsupported",
+  );
+});
+
+test("unavailable destinations clear an accepted route and recover without losing preferences", () => {
+  let response = conversationTurns([
+    "From Colombo Fort to Galle with less walking, no air taxi",
+    "I'll take this one",
+    "Take me to Rathnapura",
+  ]);
+  assert.equal(response.result.route, undefined);
+  assert.equal(response.conversation.accepted, false);
+  assert.equal(response.conversation.selectedJourney, null);
+  assert.equal(response.conversation.to, undefined);
+  assert.equal(response.conversation.pendingPlace.status, "unsupported");
+  assert.equal(
+    turn("Start tracking", response.conversation).navigation,
+    undefined,
+  );
+  assert.equal(turn("Yes", response.conversation).navigation, undefined);
+  response = turn("Kalutara", response.conversation);
+  assert.equal(response.result.status, "success");
+  assert.equal(response.conversation.from, "Colombo Fort");
+  assert.equal(response.conversation.to, "Kalutara");
+  assert.equal(response.conversation.walking, "low");
+  assert.deepEqual(response.conversation.avoidModes, ["air"]);
+  const started = conversationTurns(
+    ["Select this", "Yes"],
+    response.conversation,
+  );
+  const url = new URL(started.navigation, "https://moveone.test");
+  assert.equal(url.searchParams.get("to"), "Kalutara");
+  assert.equal(url.searchParams.get("walking"), "low");
+});
+
+test("existing page context cannot seed or start an unavailable Journey AI route", () => {
+  for (const [from, to, replacement, role] of [
+    ["Maharagama", "Rathnapura", "Galle", "to"],
+    ["Colombo", "Kandy", "Colombo Fort", "from"],
+  ]) {
+    const state = start({
+      from,
+      to,
+      style: "comfortable",
+      walking: "low",
+      accepted: true,
+    });
+    assert.equal(state.accepted, false);
+    assert.equal(state.route, undefined);
+    assert.equal(state.pendingPlace.role, role);
+    assert.equal(turn("Start tracking", state).navigation, undefined);
+    const recovered = turn(replacement, state);
+    assert.equal(recovered.result.status, "success");
+    assert.equal(recovered.conversation[role], replacement);
+    assert.equal(recovered.conversation.style, "comfortable");
+    assert.equal(recovered.conversation.walking, "low");
+  }
+});
+
+test("catalogue retains map locations with unique canonical names and Sri Lankan coordinates", () => {
   const required = [
     "Maharagama",
     "Colombo Fort",
@@ -618,7 +739,14 @@ test("aliases and conservative typo matching resolve canonical objects without p
       findLocation(canonical),
       phrase,
     );
-    assert.equal(plan(`Take me to ${phrase}`).to.name, canonical, phrase);
+    const result = plan(`Take me to ${phrase}`);
+    if (findLocation(canonical).image)
+      assert.equal(result.to.name, canonical, phrase);
+    else {
+      assert.equal(result.status, "error", phrase);
+      assert.equal(result.route, undefined, phrase);
+      assert.match(result.message, /isn't available in Journey AI yet/, phrase);
+    }
   }
   assert.deepEqual(
     findLocationMentions("Colombo Airport and Colombo Fort Station").map(
@@ -646,40 +774,40 @@ test("aliases and conservative typo matching resolve canonical objects without p
 
 test("all requested destination sentence forms and ten acceptance phrases resolve", () => {
   for (const text of [
-    "I want to go Rathnapura",
-    "I want to go to Rathnapura",
-    "take me Rathnapura",
-    "take me to Rathnapura",
-    "I need to get to Rathnapura",
-    "how can I reach Rathnapura",
-    "can you take me to Rathnapura",
-    "plan a trip to Rathnapura",
-    "find a route for Rathnapura",
-    "Rathnapura please",
-    "from Maharagama to Rathnapura",
-    "I am in Maharagama and need to get to Rathnapura",
+    "I want to go Galle",
+    "I want to go to Galle",
+    "take me Galle",
+    "take me to Galle",
+    "I need to get to Galle",
+    "how can I reach Galle",
+    "can you take me to Galle",
+    "plan a trip to Galle",
+    "find a route for Galle",
+    "Galle please",
+    "from Maharagama to Galle",
+    "I am in Maharagama and need to get to Galle",
   ]) {
     const result = plan(text);
     assert.equal(result.status, "success", `${text}: ${result.message}`);
-    assert.equal(result.to.name, "Rathnapura", text);
+    assert.equal(result.to.name, "Galle", text);
     assert.equal(result.from.name, "Maharagama", text);
   }
   const examples = [
-    ["I want to go to Rathnapura.", "Rathnapura", "recommended"],
-    ["I want to go Rathnapura.", "Rathnapura", "recommended"],
-    ["Rathnapura please.", "Rathnapura", "recommended"],
+    ["I want to go to Galle.", "Galle", "recommended"],
+    ["I want to go Galle.", "Galle", "recommended"],
+    ["Galle please.", "Galle", "recommended"],
     [
-      "Take me from Colombo to Rathnapura.",
-      "Rathnapura",
+      "Take me from Colombo Fort to Galle.",
+      "Galle",
       "recommended",
       "include",
       [],
-      "Colombo",
+      "Colombo Fort",
     ],
-    ["Give me the fastest way to Matara.", "Matara", "fastest"],
+    ["Give me the fastest way to Kalutara.", "Kalutara", "fastest"],
     [
-      "I want to visit Nuwara Eliya but I can't walk much.",
-      "Nuwara Eliya",
+      "I want to visit Port City but I can't walk much.",
+      "Port City",
       "recommended",
       "low",
     ],
@@ -689,7 +817,7 @@ test("all requested destination sentence forms and ten acceptance phrases resolv
       "comfortable",
       "low",
     ],
-    ["Take me to Jaffna as cheaply as possible.", "Jaffna", "eco"],
+    ["Take me to Makumbura as cheaply as possible.", "Makumbura", "eco"],
     [
       "Get me to the airport without an air taxi.",
       "Bandaranaike International Airport",
@@ -760,7 +888,7 @@ test("natural preferences and avoidance phrases retain hard constraints", () => 
     ["I'm afraid of flying", "air"],
     ["don't fly", "air"],
   ]) {
-    const result = plan(`fastest to Matara, ${phrase}`);
+    const result = plan(`fastest to Kalutara, ${phrase}`);
     assert.ok(result.intent.avoidModes.includes(mode), phrase);
     assert.ok(
       result.route.segments.every((segment) => segment.mode !== mode),
@@ -773,14 +901,14 @@ test("multi-turn journey memory retains places and exclusions through preference
   let state = start();
   let result;
   for (const phrase of [
-    "Take me to Rathnapura.",
+    "Take me to Galle.",
     "Fastest.",
     "No air taxi.",
     "Make it cheaper.",
   ]) {
     ({ conversation: state, result } = turn(phrase, state));
     assert.equal(result.status, "success", phrase);
-    assert.equal(state.to, "Rathnapura", phrase);
+    assert.equal(state.to, "Galle", phrase);
   }
   assert.equal(state.style, "eco");
   assert.deepEqual(state.avoidModes, ["air"]);
@@ -807,8 +935,8 @@ test("multi-turn journey memory retains places and exclusions through preference
     assert.ok(respond(response.result).includes(expected), question);
   }
   ({ conversation: state } = turn("What about Kandy instead?", state));
-  ({ conversation: state } = turn("Start from Colombo.", state));
-  assert.equal(state.from, "Colombo");
+  ({ conversation: state } = turn("Start from Colombo Fort.", state));
+  assert.equal(state.from, "Colombo Fort");
   assert.equal(state.to, "Kandy");
   assert.equal(state.style, "eco");
   assert.deepEqual(state.avoidModes, ["air"]);
@@ -826,10 +954,10 @@ test("clarifications retain known fields and preferences without silently reusin
     turn("Fastest", state).result.message,
     "Of course. Where would you like to go?",
   );
-  ({ conversation: state, result } = turn("Rathnapura.", state));
-  assert.equal(result.to.name, "Rathnapura");
+  ({ conversation: state, result } = turn("Galle.", state));
+  assert.equal(result.to.name, "Galle");
   ({ conversation: state, result } = turn("Take me there cheaply.", state));
-  assert.equal(result.to.name, "Rathnapura");
+  assert.equal(result.to.name, "Galle");
   assert.equal(state.style, "eco");
   ({ conversation: state, result } = turn(
     "Take me to Atlantis without air taxi",
@@ -841,16 +969,16 @@ test("clarifications retain known fields and preferences without silently reusin
     "I couldn't find that place. Could you say the destination again?",
   );
   assert.equal(state.to, undefined);
-  ({ conversation: state, result } = turn("Jaffna", state));
-  assert.equal(result.to.name, "Jaffna");
+  ({ conversation: state, result } = turn("Makumbura", state));
+  assert.equal(result.to.name, "Makumbura");
   assert.equal(state.style, "eco");
   assert.deepEqual(state.avoidModes, ["air"]);
   ({ conversation: state, result } = turn("from Atlantis to Kandy", state));
   assert.match(result.message, /starting point again/);
   ({ conversation: state, result } = turn("Fastest", state));
   assert.equal(result.status, "error");
-  ({ conversation: state, result } = turn("Colombo", state));
-  assert.equal(result.from.name, "Colombo");
+  ({ conversation: state, result } = turn("Colombo Fort", state));
+  assert.equal(result.from.name, "Colombo Fort");
   assert.equal(result.to.name, "Kandy");
   ({ conversation: state, result } = turn(
     "Take me to Colombo Fort or Port City",
@@ -863,9 +991,7 @@ test("clarifications retain known fields and preferences without silently reusin
 });
 
 test("alternatives and next-fastest use valid generated routes; cheaper never claims a false saving", () => {
-  let { conversation: state, result } = turn(
-    "Fastest to Rathnapura, no air taxi",
-  );
+  let { conversation: state, result } = turn("Fastest to Galle, no air taxi");
   const ordered = buildRoutes(result.from, result.to, "include")
     .filter((route) => !route.segments.some(({ mode }) => mode === "air"))
     .sort(
@@ -904,7 +1030,7 @@ test("questions on an existing Journey/Tracking selection use that exact route",
   for (const walking of ["include", "low"]) {
     const journey = readJourney(
       new URLSearchParams(
-        `from=Colombo&to=Matara&style=simplest&walking=${walking}`,
+        `from=Colombo Fort&to=Kalutara&style=simplest&walking=${walking}`,
       ),
     );
     const state = start(journey);
