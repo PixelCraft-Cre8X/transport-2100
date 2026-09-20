@@ -20,7 +20,6 @@ import {
   readJourney,
   journeyQuery,
   formatFare,
-  clockTime,
   departureDay,
   formatDay,
   withStartTimes,
@@ -80,7 +79,9 @@ export default function Journey() {
     .sort((a, b) => (b.id === TOP_STYLE) - (a.id === TOP_STYLE));
   const selected =
     routes.find((o) => o.id === journey.selected.id) || routes[0];
-  const steps = withStartTimes(selected.segments);
+  // A booked journey keeps the date and time it was booked for.
+  const base = booking?.departureMinutes;
+  const steps = withStartTimes(selected.segments, base);
   const query = journeyQuery(from.name, to.name, selected.id, walking);
   const optionsRef = useRef(null);
   const [visibleIndex, setVisibleIndex] = useState(0);
@@ -161,8 +162,13 @@ export default function Journey() {
           <div className="jm-toolbar">
             <span>
               <CalendarDays size={20} />
-              Depart at 09:00 <i aria-hidden="true">·</i>
-              <span className="jm-date">{departureDate()}</span>
+              Depart at {booking ? booking.departure : "09:00"}{" "}
+              <i aria-hidden="true">·</i>
+              <span className="jm-date">
+                {booking
+                  ? booking.date.replace(/ \d{4}$/, "")
+                  : departureDate()}
+              </span>
             </span>
           </div>
 
@@ -400,7 +406,6 @@ export default function Journey() {
         to={to}
         steps={steps}
         route={selected}
-        arrival={clockTime(selected.duration)}
         query={query}
         trackHref={`/tracking?${query}`}
       />

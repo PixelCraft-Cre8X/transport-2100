@@ -55,7 +55,8 @@ export default function Tracking() {
   );
   const [ticketOpen, setTicketOpen] = useState(false);
   const [cancelOpen, setCancelOpen] = useState(false);
-  const segments = withStartTimes(selected.segments);
+  const base = booking?.departureMinutes;
+  const segments = withStartTimes(selected.segments, base);
   const [progress, setProgress] = useState(START_PROGRESS);
   const [playing, setPlaying] = useState(true);
   const [voice, setVoice] = useState(false);
@@ -84,7 +85,7 @@ export default function Tracking() {
   const previousCurrentIndex = useRef(currentIndex);
   const previousArrived = useRef(arrived);
   const remaining = Math.max(0, Math.round(duration - elapsed));
-  const arrival = clockTime(duration);
+  const arrival = clockTime(duration, { base });
   const walkingNow = current.mode === "walk";
   const query = journeyQuery(from.name, to.name, selected.id, walking);
 
@@ -176,7 +177,7 @@ export default function Tracking() {
             {arrived ? "Arrived" : "Live tracking"}
           </span>
           <time className="tk-clock">
-            {clockTime(elapsed, { seconds: true })}
+            {clockTime(elapsed, { seconds: true, base })}
           </time>
         </div>
       </header>
@@ -250,7 +251,7 @@ export default function Tracking() {
               <strong>{arrived ? to.name : current.stop}</strong>
               <small>{nextStepText(segments, currentIndex, to.name)}</small>
             </div>
-            <time>{arrived ? arrival : clockTime(segmentEnd)}</time>
+            <time>{arrived ? arrival : clockTime(segmentEnd, { base })}</time>
           </div>
 
           <dl className="tk-stats">
