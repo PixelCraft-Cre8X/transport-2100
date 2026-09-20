@@ -1,6 +1,10 @@
 import { buildRoutes, formatFare } from "../data/journeys.js";
 import { comparisonTags, transportModes } from "../data/network.js";
 import { findLocation } from "./locationResolver.js";
+import {
+  journeyDestinations,
+  unavailableJourneyDestination,
+} from "./journeyDestinations.js";
 export { parseJourneyRequest } from "./journeyIntent.js";
 
 /** Filter hard constraints first, then rank the actual generated route options. */
@@ -17,6 +21,17 @@ export function recommendJourney(intent, { excludedIds = [], nextAfter } = {}) {
     return {
       status: "error",
       message: "Please choose two different locations in the MoveOne network.",
+    };
+  }
+  if (
+    !journeyDestinations.includes(from) ||
+    !journeyDestinations.includes(to)
+  ) {
+    const role = journeyDestinations.includes(from) ? "to" : "from";
+    return {
+      status: "error",
+      message: unavailableJourneyDestination(role),
+      clarification: { role, status: "unsupported" },
     };
   }
   const options = buildRoutes(from, to, intent.walking).filter(
