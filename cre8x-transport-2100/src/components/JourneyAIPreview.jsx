@@ -75,7 +75,7 @@ function JourneyAIDialog({
   const [messages, setMessages] = useState([]);
   const [result, setResult] = useState(null);
   const [expandedSuggestions, setExpandedSuggestions] = useState(null);
-  const [historyExpanded, setHistoryExpanded] = useState(true);
+  const [historyExpanded, setHistoryExpanded] = useState(false);
   const historyRef = useRef(null);
   const nextMessageId = useRef(0);
   const dialogRef = useRef(null);
@@ -149,6 +149,18 @@ function JourneyAIDialog({
     );
     closeDialog();
     navigate(`/journey?${query}`);
+  }
+
+  function openBooking() {
+    if (!recommendation || busy) return;
+    const query = journeyQuery(
+      recommendation.from.name,
+      recommendation.to.name,
+      recommendation.route.id,
+      recommendation.intent.walking,
+    );
+    closeDialog();
+    navigate(`/journey?${query}&booking=1`);
   }
 
   useEffect(() => {
@@ -365,9 +377,7 @@ function JourneyAIDialog({
               accepted={conversation.accepted}
               busy={busy}
               onView={openJourney}
-              onStart={() =>
-                voiceSessionRef.current?.submit("Start tracking", "text")
-              }
+              onStart={openBooking}
             />
           )}
           <div
