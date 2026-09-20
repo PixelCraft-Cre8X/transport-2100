@@ -86,7 +86,9 @@ export default function Journey() {
   const optionsRef = useRef(null);
   const [visibleIndex, setVisibleIndex] = useState(0);
   const [saved, setSaved] = useState(false);
-  const [bookingOpen, setBookingOpen] = useState(false);
+  const [bookingOpen, setBookingOpen] = useState(
+    () => params.get("booking") === "1" && !booking,
+  );
   const [ticketOpen, setTicketOpen] = useState(false);
   const [cancelled, setCancelled] = useState(location.state?.cancelled ?? null);
 

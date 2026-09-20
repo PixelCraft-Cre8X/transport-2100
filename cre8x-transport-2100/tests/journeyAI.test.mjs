@@ -82,7 +82,7 @@ test("acceptance remembers the exact recommendation and asks before starting", (
   }
 });
 
-test("acceptance followed by a start phrase opens the exact accepted journey", () => {
+test("acceptance followed by a start phrase opens booking for the exact journey", () => {
   const accepted = conversationTurns([
     "Take me from Colombo Fort to Galle with less walking, without air taxi.",
     "I'll take this one.",
@@ -100,7 +100,8 @@ test("acceptance followed by a start phrase opens the exact accepted journey", (
   ]) {
     const started = turn(phrase, accepted.conversation);
     const url = new URL(started.navigation, "https://moveone.test");
-    assert.equal(url.pathname, "/tracking", phrase);
+    assert.equal(url.pathname, "/journey", phrase);
+    assert.equal(url.searchParams.get("booking"), "1", phrase);
     const reopened = readJourney(url.searchParams);
     assert.equal(reopened.from.name, "Colombo Fort", phrase);
     assert.equal(reopened.to.name, "Galle", phrase);
@@ -112,6 +113,21 @@ test("acceptance followed by a start phrase opens the exact accepted journey", (
     );
     assert.deepEqual(started.conversation.avoidModes, ["air"]);
     assert.equal(started.conversation.awaitingStart, false);
+  }
+});
+
+test("view journey opens the current recommendation in My Journey", () => {
+  const recommended = turn("Take me to Galle");
+  for (const phrase of ["View journey", "Show my journey"]) {
+    const viewed = turn(phrase, recommended.conversation);
+    const url = new URL(viewed.navigation, "https://moveone.test");
+    assert.equal(url.pathname, "/journey", phrase);
+    assert.equal(url.searchParams.get("booking"), null, phrase);
+    assert.deepEqual(
+      readJourney(url.searchParams).selected,
+      recommended.result.route,
+      phrase,
+    );
   }
 });
 
