@@ -34,6 +34,247 @@ const context = {
   walking: "include",
 };
 
+function conversationTurns(phrases, conversation = start()) {
+  let response;
+  for (const phrase of phrases) {
+    response = turn(phrase, conversation);
+    conversation = response.conversation;
+  }
+  return response;
+}
+
+test("acceptance remembers the exact recommendation and asks before starting", () => {
+  const recommended = turn("Take me to Rathnapura.");
+  for (const phrase of [
+    "I'll take this one.",
+    "I’ll take that one.",
+    "I will take this route",
+    "Choose this route",
+    "Select this",
+    "Use this journey",
+    "This one is fine",
+    "That route is fine",
+    "Let's go",
+    "Okay, use this",
+    "Yes, this one",
+    "Please select this route",
+  ]) {
+    const accepted = turn(phrase, recommended.conversation);
+    assert.equal(accepted.conversation.accepted, true, phrase);
+    assert.equal(
+      accepted.conversation.selectedRoute,
+      recommended.result.route,
+      phrase,
+    );
+    assert.equal(
+      accepted.conversation.selectedJourney,
+      recommended.conversation.lastResult,
+    );
+    assert.equal(accepted.navigation, undefined, phrase);
+    assert.match(
+      respond(accepted.result),
+      /selected this journey to Rathnapura/,
+    );
+    assert.match(
+      respond(accepted.result),
+      /Would you like me to start live guidance/,
+    );
+  }
+});
+
+test("acceptance followed by a start phrase opens the exact accepted journey", () => {
+  const accepted = conversationTurns([
+    "Take me from Colombo Fort to Rathnapura with less walking, without air taxi.",
+    "I'll take this one.",
+  ]);
+  for (const phrase of [
+    "Yes.",
+    "Yes, start",
+    "Start",
+    "Start the journey",
+    "Let's go",
+    "Start tracking",
+    "Guide me",
+    "Begin navigation",
+    "Take me there",
+  ]) {
+    const started = turn(phrase, accepted.conversation);
+    const url = new URL(started.navigation, "https://moveone.test");
+    assert.equal(url.pathname, "/tracking", phrase);
+    const reopened = readJourney(url.searchParams);
+    assert.equal(reopened.from.name, "Colombo Fort", phrase);
+    assert.equal(reopened.to.name, "Rathnapura", phrase);
+    assert.equal(reopened.walking, "low", phrase);
+    assert.deepEqual(
+      reopened.selected,
+      accepted.conversation.selectedRoute,
+      phrase,
+    );
+    assert.deepEqual(started.conversation.avoidModes, ["air"]);
+    assert.equal(started.conversation.awaitingStart, false);
+  }
+});
+
+test("cheaper follow-up is the journey selected and opened in Tracking", () => {
+  const recommended = turn("Take me to Rathnapura.");
+  const cheaper = turn("Make it cheaper.", recommended.conversation);
+  assert.ok(cheaper.result.route.cost < recommended.result.route.cost);
+  const started = conversationTurns(
+    ["I'll take that one.", "Start tracking."],
+    cheaper.conversation,
+  );
+  const url = new URL(started.navigation, "https://moveone.test");
+  assert.deepEqual(
+    readJourney(url.searchParams).selected,
+    cheaper.result.route,
+  );
+  assert.equal(url.searchParams.get("style"), cheaper.result.route.id);
+});
+
+test("explicit start can accept and launch the current recommendation in one turn", () => {
+  const recommended = turn("Fastest to Kandy without air taxi");
+  for (const phrase of ["Start this journey", "Start trip", "Start tracking"]) {
+    const started = turn(phrase, recommended.conversation);
+    assert.equal(started.conversation.accepted, true);
+    const url = new URL(started.navigation, "https://moveone.test");
+    assert.deepEqual(
+      readJourney(url.searchParams).selected,
+      recommended.result.route,
+    );
+    assert.equal(url.searchParams.get("style"), recommended.result.route.id);
+  }
+});
+
+test("bare agreement never starts an unaccepted or cancelled journey", () => {
+  const recommended = turn("Take me to Kandy");
+  assert.equal(turn("Yes", recommended.conversation).navigation, undefined);
+  const cancelled = conversationTurns(
+    ["Select this", "Cancel journey"],
+    recommended.conversation,
+  );
+  assert.equal(cancelled.conversation.accepted, false);
+  assert.equal(cancelled.conversation.selectedRoute, null);
+  assert.equal(cancelled.conversation.recommendedRoute, null);
+  for (const phrase of ["Yes", "Start tracking", "I'll take this one"]) {
+    assert.equal(turn(phrase).navigation, undefined, phrase);
+    assert.equal(
+      turn(phrase, cancelled.conversation).navigation,
+      undefined,
+      phrase,
+    );
+  }
+  const waiting = conversationTurns(
+    ["Select this", "Not yet"],
+    recommended.conversation,
+  );
+  assert.equal(waiting.conversation.accepted, true);
+  assert.equal(turn("Yes", waiting.conversation).navigation, undefined);
+  assert.ok(turn("Start tracking", waiting.conversation).navigation);
+});
+
+test("rejection and another option keep the destination and choose different valid routes", () => {
+  let response = turn("Take me to Kandy without air taxi");
+  const routeIds = new Set([response.result.route.id]);
+  for (const phrase of ["I don't like this one.", "Show me another option."]) {
+    response = turn(phrase, response.conversation);
+    assert.equal(response.result.status, "success");
+    assert.equal(response.conversation.to, "Kandy");
+    assert.ok(!routeIds.has(response.result.route.id), phrase);
+    assert.ok(
+      response.result.route.segments.every(({ mode }) => mode !== "air"),
+    );
+    routeIds.add(response.result.route.id);
+  }
+  for (const phrase of [
+    "Show me another one",
+    "Another route",
+    "Give me another option",
+    "Change route",
+  ]) {
+    const original = turn("Take me to Kandy");
+    const alternative = turn(phrase, original.conversation);
+    assert.equal(alternative.conversation.to, "Kandy");
+    assert.notEqual(
+      alternative.result.route.id,
+      original.result.route.id,
+      phrase,
+    );
+  }
+});
+
+test("questions retain selection, while new route requests clear the previous acceptance", () => {
+  const accepted = conversationTurns(["Take me to Kandy", "Select this"]);
+  for (const phrase of ["How long will it take?", "Read directions"]) {
+    const answer = turn(phrase, accepted.conversation);
+    assert.equal(
+      answer.conversation.selectedRoute,
+      accepted.conversation.selectedRoute,
+    );
+    assert.equal(answer.conversation.accepted, true);
+    assert.ok(respond(answer.result).includes("minutes"));
+    assert.equal(answer.navigation, undefined);
+  }
+  for (const phrase of [
+    "Something cheaper",
+    "Something faster",
+    "Less walking",
+    "Change route",
+    "Take me to Galle",
+    "Take me to Atlantis",
+  ]) {
+    const changed = turn(phrase, accepted.conversation);
+    assert.equal(changed.conversation.accepted, false, phrase);
+    assert.equal(changed.conversation.selectedJourney, null, phrase);
+    assert.equal(
+      turn("Yes", changed.conversation).navigation,
+      undefined,
+      phrase,
+    );
+  }
+  assert.equal(
+    turn("Don't start the journey", accepted.conversation).navigation,
+    undefined,
+  );
+  const newOrigin = turn("Yes, start from Colombo", accepted.conversation);
+  assert.equal(newOrigin.navigation, undefined);
+  assert.equal(newOrigin.conversation.from, "Colombo");
+});
+
+test("rejecting an accepted route cannot leave a pending start when alternatives run out", () => {
+  let response = turn("Take me to Kandy without air taxi");
+  for (let count = 0; count < 10; count++) {
+    response = turn("Show me another option", response.conversation);
+    if (response.result.kind === "answer") break;
+  }
+  assert.match(response.result.message, /shown all the options/);
+  response = turn("Select this", response.conversation);
+  assert.equal(response.conversation.accepted, true);
+  response = turn("I don't like this one", response.conversation);
+  assert.equal(response.conversation.accepted, false);
+  assert.equal(response.conversation.selectedJourney, null);
+  assert.equal(turn("Yes", response.conversation).navigation, undefined);
+  assert.equal(response.conversation.to, "Kandy");
+});
+
+test("opening on an existing selected Journey preserves its route and walking preference", () => {
+  const seeded = start({
+    ...context,
+    style: "comfortable",
+    walking: "low",
+    accepted: true,
+  });
+  assert.equal(seeded.accepted, true);
+  assert.equal(seeded.selectedRoute, seeded.route);
+  const started = turn("Start tracking", seeded);
+  const url = new URL(started.navigation, "https://moveone.test");
+  assert.equal(url.searchParams.get("style"), "comfortable");
+  assert.equal(url.searchParams.get("walking"), "low");
+  assert.deepEqual(
+    readJourney(url.searchParams).selected,
+    seeded.selectedRoute,
+  );
+});
+
 test("all supplied preference phrases map to their existing style", () => {
   const phrases = {
     fastest: ["fastest", "quickest", "as fast as possible", "shortest time"],
@@ -581,7 +822,10 @@ test("multi-turn journey memory retains places and exclusions through preference
 test("clarifications retain known fields and preferences without silently reusing unknown places", () => {
   let { conversation: state, result } = turn("I need a journey.");
   assert.equal(result.message, "Of course. Where would you like to go?");
-  assert.equal(turn("Fastest", state).result.message, "Of course. Where would you like to go?");
+  assert.equal(
+    turn("Fastest", state).result.message,
+    "Of course. Where would you like to go?",
+  );
   ({ conversation: state, result } = turn("Rathnapura.", state));
   assert.equal(result.to.name, "Rathnapura");
   ({ conversation: state, result } = turn("Take me there cheaply.", state));
@@ -668,7 +912,10 @@ test("questions on an existing Journey/Tracking selection use that exact route",
     const answer = turn("How much is it?", state).result;
     assert.equal(answer.route.id, "simplest");
     assert.ok(respond(answer).includes(formatFare(journey.selected.cost)));
-    assert.match(respond(turn("Why did you choose this?", state).result), /selected on your current journey/);
+    assert.match(
+      respond(turn("Why did you choose this?", state).result),
+      /selected on your current journey/,
+    );
   }
   assert.equal(
     turn("How long does it take?").result.message,

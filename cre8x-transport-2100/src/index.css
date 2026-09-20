@@ -1272,6 +1272,20 @@ main {
   overflow: hidden;
   text-align: left;
 }
+.journey-ai-body {
+  flex: 1;
+  min-height: 0;
+  padding: 4px 6px 4px 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  scrollbar-color: #435b78 transparent;
+}
+.journey-ai-dialog[data-conversation="false"] .journey-ai-body {
+  display: flex;
+  flex-direction: column;
+  justify-content: safe center;
+}
 .journey-ai-heading {
   display: flex;
   flex-shrink: 0;
@@ -1316,12 +1330,46 @@ main {
 }
 .journey-ai-dialog[data-conversation="false"] .journey-ai-voice {
   display: flex;
-  flex: 1;
   flex-direction: column;
   justify-content: center;
 }
-.journey-ai-dialog[data-conversation="false"] .journey-ai-content {
-  display: none;
+.journey-ai-dialog[data-conversation="true"] .journey-ai-voice {
+  position: sticky;
+  top: -4px;
+  z-index: 2;
+  display: grid;
+  grid-template-columns: 72px minmax(0, 1fr);
+  grid-template-areas: "mic prompt" "mic status" "mic end" "notice notice";
+  gap: 0 18px;
+  margin-bottom: 12px;
+  padding: 12px 8px 4px;
+  text-align: left;
+  border-bottom: 1px solid var(--line);
+  background: #0d1b2d;
+}
+.journey-ai-dialog[data-conversation="true"] .journey-ai-prompt {
+  grid-area: prompt;
+  margin: 0;
+  font-size: 17px;
+}
+.journey-ai-dialog[data-conversation="true"] .journey-ai-mic {
+  grid-area: mic;
+  width: 72px;
+  height: 72px;
+  align-self: center;
+}
+.journey-ai-dialog[data-conversation="true"] .journey-ai-voice-status {
+  grid-area: status;
+  margin: 3px 0 0;
+}
+.journey-ai-dialog[data-conversation="true"] .journey-ai-end {
+  grid-area: end;
+  justify-self: start;
+  margin: 0;
+  padding: 8px 0;
+}
+.journey-ai-dialog[data-conversation="true"] .journey-ai-notice {
+  grid-area: notice;
 }
 .journey-ai-prompt {
   margin: 0 0 25px;
@@ -1422,6 +1470,8 @@ main {
 .journey-ai-examples {
   min-width: 0;
   margin-top: 16px;
+  flex-shrink: 0;
+  text-align: center;
 }
 .journey-ai-examples > p {
   margin-bottom: 8px;
@@ -1455,6 +1505,16 @@ main {
   opacity: 0.5;
   cursor: wait;
 }
+.journey-ai-more {
+  display: none;
+  min-height: 44px;
+  padding: 8px 12px;
+  color: #b6a5e9;
+  font-size: 12px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+}
 .journey-ai-end {
   align-self: center;
   min-height: 44px;
@@ -1475,13 +1535,37 @@ main {
   cursor: default;
 }
 .journey-ai-content {
-  flex: 1;
-  min-height: 0;
-  padding: 4px 4px 4px 0;
+  max-height: 260px;
+  padding: 8px 12px;
   overflow-y: auto;
   overscroll-behavior: contain;
   scrollbar-width: thin;
   scrollbar-color: #435b78 transparent;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: rgba(7, 17, 31, 0.3);
+}
+.journey-ai-history {
+  margin-top: 20px;
+}
+.journey-ai-history-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.journey-ai-history-heading h3 {
+  font-size: 14px;
+  font-weight: 600;
+}
+.journey-ai-history-toggle {
+  min-height: 44px;
+  padding: 8px 4px;
+  color: #afc9dc;
+  font-size: 12px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
 }
 .journey-ai-transcript {
   margin: 4px 0 14px;
@@ -1493,13 +1577,13 @@ main {
   display: block;
   margin-bottom: 4px;
   color: #9aacc2;
-  font-size: 10px;
+  font-size: 12px;
 }
 .journey-ai-transcript p,
 .journey-ai-answer p {
   color: #d9e5ef;
-  font-size: 13px;
-  line-height: 1.55;
+  font-size: 14px;
+  line-height: 1.65;
   overflow-wrap: anywhere;
 }
 .journey-ai-answer {
@@ -1510,6 +1594,16 @@ main {
 }
 .journey-ai-recommendation {
   padding: 15px;
+  overflow-wrap: anywhere;
+}
+.journey-ai-route-places {
+  margin-top: 8px;
+  color: #c7d7e6;
+  font-size: 14px;
+}
+.journey-ai-selected {
+  margin-left: auto;
+  color: #a8e5cd;
 }
 .journey-ai-route-label,
 .journey-ai-modes,
@@ -1583,6 +1677,10 @@ main {
   padding: 10px 12px;
   font-size: 12px;
   white-space: nowrap;
+}
+.journey-ai-navigation > .button:disabled {
+  cursor: wait;
+  opacity: 0.6;
 }
 .journey-ai-result-tools {
   display: flex;
@@ -1749,19 +1847,22 @@ main {
     font-size: 12px;
   }
   .journey-ai-suggestions {
-    flex-wrap: nowrap;
-    justify-content: flex-start;
-    overflow-x: auto;
-    overscroll-behavior-x: contain;
-    scrollbar-width: thin;
-    scrollbar-color: #435b78 transparent;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
   .journey-ai-suggestion {
-    flex: 0 0 auto;
-    max-width: 100%;
+    min-width: 0;
+    padding: 9px 8px;
+    overflow-wrap: anywhere;
   }
-  .journey-ai-suggestion:nth-child(n + 4) {
+  .journey-ai-examples[data-expanded="false"] .journey-ai-suggestion:nth-child(n + 5) {
     display: none;
+  }
+  .journey-ai-more {
+    display: inline-block;
+  }
+  .journey-ai-content {
+    max-height: 35dvh;
   }
   .journey-ai-recommendation {
     padding: 12px;
@@ -1774,19 +1875,9 @@ main {
     font-size: 11px;
   }
 }
-@media (max-height: 700px) {
-  .journey-ai-dialog {
-    overflow-y: auto;
-    overscroll-behavior: contain;
-    scrollbar-width: thin;
-    scrollbar-color: #435b78 transparent;
-  }
-  .journey-ai-dialog[data-conversation="false"] .journey-ai-voice {
-    flex-shrink: 0;
-  }
-  .journey-ai-content {
-    flex: 1 0 auto;
-    overflow-y: visible;
+@media (max-width: 359px) {
+  .journey-ai-metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 @media (prefers-reduced-motion: reduce) {

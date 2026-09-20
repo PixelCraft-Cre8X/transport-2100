@@ -1,17 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import {
-  Accessibility,
-  ArrowRight,
-  Footprints,
-  LoaderCircle,
-  Mic,
-  Send,
-  Sparkles,
-  Volume2,
-  X,
-} from "lucide-react";
-import { formatFare, journeyQuery, readJourney } from "../data/journeys";
+import { LoaderCircle, Mic, Send, Sparkles, Volume2, X } from "lucide-react";
+import { journeyQuery, readJourney } from "../data/journeys";
 import { createJourneyAIResponse } from "../utils/journeyAI";
 import { microphoneNotice } from "../utils/microphone";
 import {
@@ -23,7 +13,7 @@ import {
   createJourneyConversation,
   handleJourneyRequest,
 } from "../utils/journeyConversation";
-import { ModeIcon } from "./UI";
+import JourneyAIRecommendation from "./JourneyAIRecommendation";
 
 const statusLabels = {
   idle: "Tap to start conversation",
@@ -39,9 +29,9 @@ const statusLabels = {
 
 const planningExamples = [
   "Take me to Rathnapura",
-  "Find the fastest route to Kandy",
+  "Fastest route to Kandy",
+  "Cheapest route to Galle",
   "I need less walking",
-  "Find the cheapest route to Galle",
 ];
 const followUpExamples = [
   "Make it faster",
@@ -50,6 +40,14 @@ const followUpExamples = [
   "How long will it take?",
   "How much does it cost?",
   "Show me another option",
+  "Less walking",
+  "Fewer transfers",
+];
+const selectedExamples = [
+  "Start tracking",
+  "Read directions",
+  "Change route",
+  "Cancel journey",
 ];
 
 export default function JourneyAIPreview({ open, ...props }) {
@@ -74,8 +72,12 @@ function JourneyAIDialog({
   const [voice, setVoice] = useState(() => initialVoiceState(permission));
   const { status, notice, conversationActive } = voice;
   const [text, setText] = useState("");
-  const [lastRequest, setLastRequest] = useState(null);
+  const [messages, setMessages] = useState([]);
   const [result, setResult] = useState(null);
+  const [expandedSuggestions, setExpandedSuggestions] = useState(null);
+  const [historyExpanded, setHistoryExpanded] = useState(true);
+  const historyRef = useRef(null);
+  const nextMessageId = useRef(0);
   const dialogRef = useRef(null);
   const microphoneRef = useRef(null);
   const closeButtonRef = useRef(null);
@@ -92,25 +94,31 @@ function JourneyAIDialog({
     to: params.get("to") ?? currentJourney.to?.name,
     style: params.get("style") ?? currentJourney.selected?.id,
     walking: params.get("walking") ?? currentJourney.walking,
+    accepted: Boolean(currentJourney.selected),
   };
   const [conversation, setConversation] = useState(() =>
     createJourneyConversation(context),
   );
   const conversationRef = useRef(conversation);
-  const examples = conversation.route ? followUpExamples : planningExamples;
-  const route = result?.status === "success" ? result.route : null;
+  const recommendation =
+    conversation.selectedJourney ?? conversation.lastResult;
+  const phase = conversation.accepted
+    ? "selected"
+    : recommendation
+      ? "recommended"
+      : "planning";
+  const examples =
+    phase === "selected"
+      ? selectedExamples
+      : phase === "recommended"
+        ? followUpExamples
+        : planningExamples;
+  const showAllSuggestions = expandedSuggestions === phase;
   const response = result ? createJourneyAIResponse(result) : "";
-  const answer =
-    route && result.kind !== "answer"
-      ? response.slice(0, response.indexOf(".") + 1)
-      : response;
   const voiceNotice =
     notice ||
     microphoneNotice(permission) ||
     (!Recognition ? recognitionUnavailable : "");
-  const stepFree = route?.segments
-    .filter(({ mode }) => mode === "walk")
-    .every(({ status }) => status === "Step-free path");
 
   function handleMicrophone() {
     voiceSessionRef.current?.toggle();
@@ -131,15 +139,16 @@ function JourneyAIDialog({
     onClose();
   }
 
-  function openJourney(path) {
+  function openJourney() {
+    if (!recommendation || busy) return;
     const query = journeyQuery(
-      result.from.name,
-      result.to.name,
-      route.id,
-      result.intent.walking,
+      recommendation.from.name,
+      recommendation.to.name,
+      recommendation.route.id,
+      recommendation.intent.walking,
     );
     closeDialog();
-    navigate(`${path}?${query}`);
+    navigate(`/journey?${query}`);
   }
 
   useEffect(() => {
@@ -152,7 +161,13 @@ function JourneyAIDialog({
       onMicrophoneUnavailable,
       onState: setVoice,
       onTranscript(request, source) {
-        setLastRequest({ text: request, source });
+        const message = {
+          id: nextMessageId.current++,
+          role: "user",
+          text: request,
+          source,
+        };
+        setMessages((previous) => [...previous, message]);
         setText("");
         setResult(null);
       },
@@ -162,7 +177,20 @@ function JourneyAIDialog({
         conversationRef.current = turn.conversation;
         setConversation(turn.conversation);
         setResult(turn.result);
-        return createJourneyAIResponse(turn.result);
+        const reply = createJourneyAIResponse(turn.result);
+        const message = {
+          id: nextMessageId.current++,
+          role: "assistant",
+          text: reply,
+        };
+        setMessages((previous) => [...previous, message]);
+        if (turn.navigation) {
+          // Dispose first so queued recognition or speech cannot follow us to Tracking.
+          session.dispose();
+          onClose();
+          navigate(turn.navigation);
+        }
+        return reply;
       },
     });
     voiceSessionRef.current = session;
@@ -176,7 +204,14 @@ function JourneyAIDialog({
     openingPermission,
     onRequestMicrophone,
     onMicrophoneUnavailable,
+    onClose,
+    navigate,
   ]);
+
+  useEffect(() => {
+    const history = historyRef.current;
+    if (history && historyExpanded) history.scrollTop = history.scrollHeight;
+  }, [messages, historyExpanded]);
 
   useEffect(() => {
     const previousFocus = returnFocusRef.current ?? document.activeElement;
@@ -238,7 +273,7 @@ function JourneyAIDialog({
         aria-modal="true"
         aria-labelledby="journey-ai-title"
         data-state={status}
-        data-conversation={Boolean(lastRequest || result)}
+        data-conversation={Boolean(messages.length || recommendation)}
         data-voice-active={conversationActive}
         onClick={(event) => event.stopPropagation()}
       >
@@ -260,69 +295,89 @@ function JourneyAIDialog({
             <X size={20} aria-hidden="true" />
           </button>
         </header>
-        {conversation.from && conversation.to && (
-          <p className="journey-ai-context">
-            <span>Current journey</span> {conversation.from} → {conversation.to}
-          </p>
-        )}
-        <div className="journey-ai-voice">
-          <p className="journey-ai-prompt">
-            {route ? "Your journey is ready." : "Where would you like to go?"}
-          </p>
-          <button
-            ref={microphoneRef}
-            className="journey-ai-mic"
-            type="button"
-            data-state={status}
-            disabled={(!Recognition && !speaking) || busy}
-            aria-label={
-              speaking || (conversationActive && status !== "paused")
-                ? "Pause voice conversation"
-                : status === "paused"
-                  ? "Resume voice conversation"
-                  : "Start voice conversation"
-            }
-            aria-pressed={conversationActive && status !== "paused"}
-            aria-describedby="journey-ai-voice-status"
-            onClick={handleMicrophone}
-          >
-            {speaking ? (
-              <span className="journey-ai-waveform" aria-hidden="true">
-                <i />
-                <i />
-                <i />
-                <i />
-                <i />
-              </span>
-            ) : status === "processing" ||
-              status === "requesting-permission" ? (
-              <LoaderCircle size={33} aria-hidden="true" />
-            ) : (
-              <Mic size={36} strokeWidth={1.6} aria-hidden="true" />
-            )}
-          </button>
-          <p
-            id="journey-ai-voice-status"
-            className="journey-ai-voice-status"
-            role="status"
-            aria-live="polite"
-          >
-            {!Recognition && !speaking
-              ? "Type your request below"
-              : statusLabels[status]}
-          </p>
-          {voiceNotice && (
-            <p className="journey-ai-notice" role="status">
-              {voiceNotice}
+        <div className="journey-ai-body">
+          <div className="journey-ai-voice">
+            <p className="journey-ai-prompt">
+              {conversation.accepted
+                ? "Your journey is selected."
+                : recommendation
+                  ? "Your journey is ready."
+                  : "Where would you like to go?"}
             </p>
+            <button
+              ref={microphoneRef}
+              className="journey-ai-mic"
+              type="button"
+              data-state={status}
+              disabled={(!Recognition && !speaking) || busy}
+              aria-label={
+                speaking || (conversationActive && status !== "paused")
+                  ? "Pause voice conversation"
+                  : status === "paused"
+                    ? "Resume voice conversation"
+                    : "Start voice conversation"
+              }
+              aria-pressed={conversationActive && status !== "paused"}
+              aria-describedby="journey-ai-voice-status"
+              onClick={handleMicrophone}
+            >
+              {speaking ? (
+                <span className="journey-ai-waveform" aria-hidden="true">
+                  <i />
+                  <i />
+                  <i />
+                  <i />
+                  <i />
+                </span>
+              ) : busy ? (
+                <LoaderCircle size={33} aria-hidden="true" />
+              ) : (
+                <Mic size={36} strokeWidth={1.6} aria-hidden="true" />
+              )}
+            </button>
+            <p
+              id="journey-ai-voice-status"
+              className="journey-ai-voice-status"
+              role="status"
+              aria-live="polite"
+            >
+              {!Recognition && !speaking
+                ? "Type your request below"
+                : statusLabels[status]}
+            </p>
+            {voiceNotice && (
+              <p className="journey-ai-notice" role="status">
+                {voiceNotice}
+              </p>
+            )}
+            <button
+              className="journey-ai-end"
+              type="button"
+              disabled={!conversationActive && !speaking && !busy}
+              onClick={() => voiceSessionRef.current?.end()}
+            >
+              End conversation
+            </button>
+          </div>
+          {recommendation && (
+            <JourneyAIRecommendation
+              journey={recommendation}
+              accepted={conversation.accepted}
+              busy={busy}
+              onView={openJourney}
+              onStart={() =>
+                voiceSessionRef.current?.submit("Start tracking", "text")
+              }
+            />
           )}
           <div
             className="journey-ai-examples"
             role="group"
             aria-labelledby="journey-ai-examples-label"
+            data-expanded={showAllSuggestions}
           >
             <p id="journey-ai-examples-label">Try saying…</p>
-            <div className="journey-ai-suggestions">
+            <div id="journey-ai-suggestions" className="journey-ai-suggestions">
               {examples.map((example, index) => (
                 <button
                   // Keep each slot mounted so focus survives changing examples.
@@ -332,139 +387,86 @@ function JourneyAIDialog({
                   aria-label={`Ask Journey AI: ${example}`}
                   aria-disabled={busy}
                   onClick={() => {
-                    if (!busy)
-                      voiceSessionRef.current?.submit(example, "text");
+                    if (!busy) voiceSessionRef.current?.submit(example, "text");
                   }}
                 >
                   {example}
                 </button>
               ))}
             </div>
+            {examples.length > 4 && (
+              <button
+                className="journey-ai-more"
+                type="button"
+                aria-expanded={showAllSuggestions}
+                aria-controls="journey-ai-suggestions"
+                onClick={() =>
+                  setExpandedSuggestions(showAllSuggestions ? null : phase)
+                }
+              >
+                {showAllSuggestions ? "Fewer suggestions" : "More suggestions"}
+              </button>
+            )}
           </div>
-          <button
-            className="journey-ai-end"
-            type="button"
-            disabled={!conversationActive && !speaking && !busy}
-            onClick={() => voiceSessionRef.current?.end()}
-          >
-            End conversation
-          </button>
-        </div>
-        <div
-          className="journey-ai-content"
-          tabIndex={lastRequest || result ? 0 : undefined}
-          aria-label="Journey conversation"
-        >
-          {lastRequest && (
-            <div className="journey-ai-transcript">
-              <span>
-                {lastRequest.source === "voice" ? "You said" : "You asked"}
-              </span>
-              <p>“{lastRequest.text}”</p>
-            </div>
-          )}
-          {result && (
-            <div className="journey-ai-answer" role="status" aria-live="polite">
-              <span>Journey AI</span>
-              <p>{answer}</p>
-            </div>
-          )}
-          {route && (
-            <article
-              className="journey-ai-recommendation glass-card"
-              aria-label="Recommended journey"
+          {messages.length > 0 && (
+            <section
+              className="journey-ai-history"
+              aria-labelledby="journey-ai-history-label"
             >
-              <div className="journey-ai-route-label">
-                <ModeIcon mode={route.icon} size={17} />
-                <strong>{route.label}</strong>
+              <div className="journey-ai-history-heading">
+                <h3 id="journey-ai-history-label">Conversation</h3>
+                <button
+                  type="button"
+                  className="journey-ai-history-toggle"
+                  aria-expanded={historyExpanded}
+                  aria-controls="journey-ai-history-messages"
+                  onClick={() => setHistoryExpanded((expanded) => !expanded)}
+                >
+                  {historyExpanded
+                    ? "Collapse conversation"
+                    : "Expand conversation"}
+                </button>
               </div>
-              <div className="journey-ai-modes">
-                {result.modes.map(({ id, short }, index) => (
-                  <span key={id}>
-                    {index > 0 && <ArrowRight size={13} aria-hidden="true" />}
-                    <ModeIcon mode={id} size={18} />
-                    {short}
-                  </span>
+              <div
+                id="journey-ai-history-messages"
+                ref={historyRef}
+                className="journey-ai-content"
+                hidden={!historyExpanded}
+                tabIndex={historyExpanded ? 0 : undefined}
+                role="log"
+                aria-label="Journey conversation"
+                aria-live="polite"
+                aria-relevant="additions text"
+              >
+                {messages.map((message) => (
+                  <div
+                    key={message.id}
+                    className={
+                      message.role === "user"
+                        ? "journey-ai-transcript"
+                        : "journey-ai-answer"
+                    }
+                  >
+                    <span>
+                      {message.role === "user" ? "You" : "Journey AI"}
+                    </span>
+                    <p>{message.text}</p>
+                  </div>
                 ))}
               </div>
-              <dl className="journey-ai-metrics">
-                <div>
-                  <dt>Travel time</dt>
-                  <dd>
-                    {route.duration}
-                    <small> min</small>
-                  </dd>
-                </div>
-                <div>
-                  <dt>Fare</dt>
-                  <dd>{formatFare(route.cost)}</dd>
-                </div>
-                <div>
-                  <dt>Transfers</dt>
-                  <dd>{route.transfers}</dd>
-                </div>
-                <div>
-                  <dt>Walking</dt>
-                  <dd>
-                    {route.walk}
-                    <small> min</small>
-                  </dd>
-                </div>
-              </dl>
-              <div className="journey-ai-accessibility">
-                {route.walk <= 4 && (
-                  <span>
-                    <Footprints size={13} aria-hidden="true" />
-                    Low walking
-                  </span>
-                )}
-                {stepFree && (
-                  <span>
-                    <Accessibility size={14} aria-hidden="true" />
-                    Step-free paths
-                  </span>
-                )}
-              </div>
-              <div className="journey-ai-navigation">
-                <button
-                  className="button primary"
-                  type="button"
-                  onClick={() => openJourney("/journey")}
-                >
-                  View journey <ArrowRight size={16} aria-hidden="true" />
-                </button>
-                <button
-                  className="button secondary"
-                  type="button"
-                  onClick={() => openJourney("/tracking")}
-                >
-                  Start tracking
-                </button>
-              </div>
-            </article>
-          )}
-          {result && (
-            <div className="journey-ai-result-tools">
-              {route && (
-                <details>
-                  <summary>Recommendation details</summary>
-                  <p>{response}</p>
-                  <small>
-                    Simulated services and fares for Sri Lanka, 2100.
-                  </small>
-                </details>
-              )}
-              {canSpeak && !speaking && (
+              {response && canSpeak && !speaking && (
                 <button
                   type="button"
                   className="journey-ai-replay"
                   onClick={() => voiceSessionRef.current?.speak(response)}
                 >
-                  <Volume2 size={16} aria-hidden="true" />
-                  Hear again
+                  <Volume2 size={16} aria-hidden="true" /> Hear again
                 </button>
               )}
-            </div>
+              <p className="journey-ai-network">
+                Simulated services and fares for Sri Lanka, 2100.
+              </p>
+            </section>
           )}
         </div>
         <footer className="journey-ai-composer">
