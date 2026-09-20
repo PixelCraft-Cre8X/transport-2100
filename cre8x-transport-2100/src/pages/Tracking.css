@@ -874,6 +874,16 @@
   transition: border-color 0.2s;
 }
 
+.tk-action.tk-cancel {
+  border-color: rgba(251, 113, 133, 0.45);
+  color: #fda4af;
+}
+
+.tk-action.tk-cancel:hover {
+  border-color: rgba(251, 113, 133, 0.8);
+  background: rgba(251, 113, 133, 0.1);
+}
+
 .tk-action:hover,
 .tk-action[aria-pressed="true"] {
   border-color: rgba(34, 211, 238, 0.6);

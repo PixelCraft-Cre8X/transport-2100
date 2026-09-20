@@ -1,29 +1,57 @@
 import { useEffect, useId, useRef, useState } from "react";
-import { createPortal } from "react-dom";
 import { Link } from "react-router-dom";
 import {
+  ArrowLeft,
   ArrowRight,
+  Armchair,
   BusFront,
   Check,
   CreditCard,
+  Disc3,
   Info,
-  Leaf,
   LoaderCircle,
   Lock,
   LocateFixed,
   MapPin,
-  Minus,
-  Plus,
   Smartphone,
   X,
 } from "lucide-react";
 import { formatFare } from "../data/journeys";
+import {
+  MOCK_BOOKED_SEATS,
+  MOCK_CARD,
+  MOCK_DEFAULT_SEATS,
+  MOCK_PASSENGER,
+  SEAT_LIMIT,
+  SEAT_LAYOUTS,
+  seatRows,
+  SERVICE_FEE,
+} from "../data/booking";
 import GlassSelect from "./GlassSelect";
+import Modal from "./Modal";
+import Ticket from "./Ticket";
+import { createBooking, rideFares, saveBooking } from "../utils/booking";
 import { ModeIcon } from "./UI";
 import "./BookingModal.css";
 
-const MAX_PASSENGERS = 6;
-const STEPS = ["Passenger", "Payment", "Confirm"];
+const STEPS = ["Passenger", "Seat", "Payment"];
+const HEADINGS = [
+  {
+    title: "Book Your Journey",
+    subtitle: "Fill in your details and choose your seat.",
+    icon: BusFront,
+  },
+  {
+    title: "Select Your Seat",
+    subtitle: "Choose up to 5 of the available seats.",
+    icon: Armchair,
+  },
+  {
+    title: "Payment Details",
+    subtitle: "Complete your payment to confirm your booking.",
+    icon: CreditCard,
+  },
+];
 const DIAL_CODES = [
   { label: "LK +94", value: "+94" },
   { label: "IN +91", value: "+91" },
@@ -50,7 +78,7 @@ const formatExpiry = (value) => {
   return d.length > 2 ? `${d.slice(0, 2)} / ${d.slice(2)}` : d;
 };
 
-function validate(form) {
+function validatePassenger(form) {
   const errors = {};
   if (form.name.trim().length < 2)
     errors.name = "Enter the passenger's full name.";
@@ -58,26 +86,25 @@ function validate(form) {
     errors.email = "Enter a valid email address.";
   if (digits(form.phone).length < 7 || digits(form.phone).length > 12)
     errors.phone = "Enter a valid phone number.";
-  if (form.method === "card") {
-    if (form.cardName.trim().length < 2)
-      errors.cardName = "Enter the name on the card.";
-    if (digits(form.cardNumber).length !== 16)
-      errors.cardNumber = "Enter the 16-digit card number.";
-    const month = Number(digits(form.expiry).slice(0, 2));
-    if (digits(form.expiry).length !== 4 || month < 1 || month > 12)
-      errors.expiry = "Use the format MM / YY.";
-    if (digits(form.cvv).length < 3)
-      errors.cvv = "Enter the 3 or 4 digit code.";
-  }
   return errors;
 }
 
-const PASSENGER_FIELDS = ["name", "email", "phone"];
+function validatePayment(form) {
+  const errors = {};
+  if (form.method !== "card") return errors;
+  if (form.cardName.trim().length < 2)
+    errors.cardName = "Enter the name on the card.";
+  if (digits(form.cardNumber).length !== 16)
+    errors.cardNumber = "Enter the 16-digit card number.";
+  const month = Number(digits(form.expiry).slice(0, 2));
+  if (digits(form.expiry).length !== 4 || month < 1 || month > 12)
+    errors.expiry = "Use the format MM / YY.";
+  if (digits(form.cvv).length < 3) errors.cvv = "Enter the 3 or 4 digit code.";
+  return errors;
+}
 
 export default function BookingModal({ open, ...props }) {
-  return open
-    ? createPortal(<BookingDialog {...props} />, document.body)
-    : null;
+  return open ? <BookingDialog {...props} /> : null;
 }
 
 function BookingDialog({
@@ -87,101 +114,161 @@ function BookingDialog({
   steps,
   route,
   arrival,
-  dateLabel,
+  query,
   trackHref,
 }) {
   const uid = useId();
   const dialogRef = useRef(null);
+  const mounted = useRef(false);
   const timer = useRef(null);
-  const closeRef = useRef(onClose);
+  const [step, setStep] = useState(1);
   const [stage, setStage] = useState("form"); // form | processing | done
-  const [attempted, setAttempted] = useState(false);
-  const [reference, setReference] = useState("");
-  const [passengers, setPassengers] = useState(1);
+  const [tried, setTried] = useState({ passenger: false, pay: false });
+  const [seatMessage, setSeatMessage] = useState("");
+  const [booking, setBooking] = useState(null);
+  const [rideIndex, setRideIndex] = useState(0); // which ride's seat is being chosen
+  const [seats, setSeats] = useState(() =>
+    Object.fromEntries(
+      steps
+        .filter((s) => s.mode !== "walk")
+        .map((ride) => [ride.start, MOCK_DEFAULT_SEATS[ride.mode]]),
+    ),
+  );
+  const [saveCard, setSaveCard] = useState(MOCK_CARD.saveCard);
   const [form, setForm] = useState({
-    name: "",
-    email: "",
-    dial: "+94",
-    phone: "",
+    ...MOCK_PASSENGER,
     method: "card",
-    cardName: "",
-    cardNumber: "",
-    expiry: "",
-    cvv: "",
+    cardName: MOCK_CARD.cardName,
+    cardNumber: MOCK_CARD.cardNumber,
+    expiry: MOCK_CARD.expiry,
+    cvv: MOCK_CARD.cvv,
   });
 
-  const errors = validate(form);
-  const passengerOk = PASSENGER_FIELDS.every((field) => !errors[field]);
-  const currentStep = stage === "done" ? 3 : passengerOk ? 2 : 1;
-  const total = route.cost * passengers;
+  const rides = steps.filter((s) => s.mode !== "walk");
+  const activeRide = rides[rideIndex];
+  const nextRide = rides[rideIndex + 1];
+  const booked = new Set(MOCK_BOOKED_SEATS[activeRide.mode]);
+  const cabin = seatRows(activeRide.mode);
+  const seatOrder = cabin.flat(2);
+  const chosen = seats[activeRide.start];
+
+  const shortName = (ride) => ride.name.split(" · ")[0];
+  const fares = rideFares(rides, route, seats);
+  const fare = fares.reduce((sum, r) => sum + r.amount, 0);
+  const total = fare + SERVICE_FEE;
+
+  const passengerErrors = validatePassenger(form);
+  const paymentErrors = validatePayment(form);
+  const errors = step === 1 ? passengerErrors : paymentErrors;
+  const attempted = step === 1 ? tried.passenger : tried.pay;
   const shown = attempted ? errors : {};
+  const done = stage === "done";
+  const heading = HEADINGS[Math.min(step, 3) - 1];
+  const HeadingIcon = heading.icon;
+
   const set = (field) => (event) =>
     setForm((f) => ({ ...f, [field]: event.target.value }));
   const setFormatted = (field, format) => (event) =>
     setForm((f) => ({ ...f, [field]: format(event.target.value) }));
 
   useEffect(() => {
-    closeRef.current = onClose;
-  });
-
-  // Lock page scroll, move focus into the dialog and hand it back on close.
-  useEffect(() => {
-    const previous = document.activeElement;
-    const overflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    dialogRef.current?.focus();
-    const onKey = (event) => {
-      if (event.key === "Escape") closeRef.current();
-    };
-    document.addEventListener("keydown", onKey);
     const pending = timer;
-    return () => {
-      document.removeEventListener("keydown", onKey);
-      clearTimeout(pending.current);
-      document.body.style.overflow = overflow;
-      previous?.focus?.();
-    };
+    return () => clearTimeout(pending.current);
   }, []);
 
-  const trapTab = (event) => {
-    if (event.key !== "Tab") return;
-    const focusable = [
-      ...dialogRef.current.querySelectorAll(
-        'a[href], button:not([disabled]), input:not([disabled]), [tabindex]:not([tabindex="-1"])',
-      ),
-    ].filter((el) => el.offsetParent !== null);
-    if (!focusable.length) return;
-    const first = focusable[0];
-    const last = focusable[focusable.length - 1];
-    if (event.shiftKey && document.activeElement === first) {
-      event.preventDefault();
-      last.focus();
-    } else if (!event.shiftKey && document.activeElement === last) {
-      event.preventDefault();
-      first.focus();
+  // Each step change starts at the top with the new heading announced.
+  useEffect(() => {
+    if (mounted.current) {
+      dialogRef.current
+        ?.querySelector(".bk-heading h2, .tc-header h2")
+        ?.focus();
+      dialogRef.current?.querySelector(".bk-body")?.scrollTo(0, 0);
+    }
+    mounted.current = true;
+  }, [step, stage, rideIndex]);
+
+  const focusFirstError = () =>
+    requestAnimationFrame(() =>
+      dialogRef.current?.querySelector('[aria-invalid="true"]')?.focus(),
+    );
+
+  const toSeats = (event) => {
+    event.preventDefault();
+    setTried((t) => ({ ...t, passenger: true }));
+    if (Object.keys(passengerErrors).length) {
+      focusFirstError();
+      return;
+    }
+    setStep(2);
+  };
+
+  const plural = (n) => `${n} seat${n === 1 ? "" : "s"}`;
+
+  const setRideSeats = (list) =>
+    setSeats((current) => ({ ...current, [activeRide.start]: list }));
+
+  const toggleSeat = (seat) => {
+    setSeatMessage("");
+    if (chosen.includes(seat)) {
+      setRideSeats(chosen.filter((s) => s !== seat));
+    } else if (chosen.length >= SEAT_LIMIT) {
+      setSeatMessage(
+        `You can select up to ${SEAT_LIMIT} seats on the ${shortName(activeRide)}.`,
+      );
+    } else {
+      setRideSeats(
+        [...chosen, seat].sort(
+          (a, b) => seatOrder.indexOf(a) - seatOrder.indexOf(b),
+        ),
+      );
     }
   };
 
-  const submit = (event) => {
+  // Seats are chosen one ride at a time: each Next moves to the following
+  // vehicle, and the last one continues to payment.
+  const nextSeat = () => {
+    if (!chosen.length) {
+      setSeatMessage(
+        `Choose at least one seat on the ${shortName(activeRide)}.`,
+      );
+      return;
+    }
+    setSeatMessage("");
+    if (nextRide) setRideIndex(rideIndex + 1);
+    else setStep(3);
+  };
+
+  const backSeat = () => {
+    setSeatMessage("");
+    if (rideIndex > 0) setRideIndex(rideIndex - 1);
+    else setStep(1);
+  };
+
+  const pay = (event) => {
     event.preventDefault();
     if (stage !== "form") return;
-    setAttempted(true);
-    if (Object.keys(errors).length) {
-      requestAnimationFrame(() =>
-        dialogRef.current?.querySelector('[aria-invalid="true"]')?.focus(),
-      );
+    setTried((t) => ({ ...t, pay: true }));
+    if (Object.keys(paymentErrors).length) {
+      focusFirstError();
       return;
     }
     setStage("processing");
     timer.current = setTimeout(() => {
-      setReference(
-        `MV-${Math.random().toString(36).slice(2, 8).toUpperCase()}`,
-      );
+      const created = createBooking({
+        from,
+        to,
+        steps,
+        route,
+        query,
+        passenger: form,
+        seats,
+        arrival,
+      });
+      saveBooking(created);
+      setBooking(created);
       setStage("done");
     }, 1100);
   };
-
-  const rides = steps.filter((s) => s.mode !== "walk");
 
   const field = (name, label, control) => (
     <div className="bk-field">
@@ -204,36 +291,50 @@ function BookingDialog({
   });
 
   return (
-    <div
-      className="bk-backdrop"
-      onMouseDown={(event) => event.target === event.currentTarget && onClose()}
+    <Modal
+      onClose={onClose}
+      labelledBy={`${uid}-title`}
+      dialogRef={dialogRef}
+      className={done ? "tc-dialog" : ""}
     >
-      <div
-        className="bk-dialog glass-modal"
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby={`${uid}-title`}
-        tabIndex={-1}
-        ref={dialogRef}
-        onKeyDown={trapTab}
-      >
-        <header className="bk-header">
-          <span className="bk-header-icon">
-            <BusFront size={30} />
-          </span>
-          <div className="bk-heading">
-            <h2 id={`${uid}-title`}>Book Your Journey</h2>
-            <p>Secure your seat and get ready to move forward.</p>
-          </div>
+      {done ? (
+        <div className="bk-body">
+          <Ticket booking={booking} titleId={`${uid}-title`} onClose={onClose}>
+            <button type="button" className="bk-primary" onClick={onClose}>
+              Done
+            </button>
+            <Link className="bk-secondary" to={trackHref}>
+              Track journey <ArrowRight size={18} />
+            </Link>
+          </Ticket>
+        </div>
+      ) : (
+        <>
+          <header className="bk-header">
+            <span className="bk-header-icon">
+              <HeadingIcon size={28} />
+            </span>
+            <div className="bk-heading">
+              <h2 id={`${uid}-title`} tabIndex={-1}>
+                {heading.title}
+              </h2>
+              <p>{heading.subtitle}</p>
+            </div>
+            <button
+              type="button"
+              className="bk-close"
+              aria-label="Close booking"
+              onClick={onClose}
+            >
+              <X size={20} />
+            </button>
+          </header>
+
           <ol className="bk-steps" aria-label="Booking progress">
             {STEPS.map((label, i) => {
               const number = i + 1;
               const state =
-                number < currentStep || (stage === "done" && number === 3)
-                  ? "done"
-                  : number === currentStep
-                    ? "current"
-                    : "";
+                number < step ? "done" : number === step ? "current" : "";
               return (
                 <li
                   key={label}
@@ -246,205 +347,235 @@ function BookingDialog({
               );
             })}
           </ol>
-          <button
-            type="button"
-            className="bk-close"
-            aria-label="Close booking"
-            onClick={onClose}
-          >
-            <X size={20} />
-          </button>
-        </header>
 
-        <div className="bk-body">
-          <aside className="bk-summary" aria-label="Trip summary">
-            <h3>Trip Summary</h3>
-            <ol className="bk-timeline">
-              <li>
-                <span className="bk-node">
-                  <LocateFixed size={20} />
-                </span>
-                <div>
-                  <strong>{from.name}</strong>
-                  <small>Start · {steps[0].time}</small>
-                </div>
-              </li>
-              {rides.map((ride) => (
-                <li key={ride.start}>
-                  <span className="bk-node">
-                    <ModeIcon mode={ride.mode} size={20} />
-                  </span>
-                  <div>
-                    <strong>{ride.name}</strong>
-                    <small>{ride.minutes} min</small>
+          <div className="bk-body">
+            {step === 1 && (
+              <form className="bk-step-form" onSubmit={toSeats} noValidate>
+                <div className="bk-passenger">
+                  <div className="bk-fields">
+                    {field(
+                      "name",
+                      "Full Name",
+                      <input
+                        {...inputProps("name")}
+                        type="text"
+                        autoComplete="name"
+                        placeholder="e.g. Kavindu Herath"
+                        value={form.name}
+                        onChange={set("name")}
+                      />,
+                    )}
+                    {field(
+                      "email",
+                      "Email",
+                      <input
+                        {...inputProps("email")}
+                        type="email"
+                        autoComplete="email"
+                        placeholder="you@example.com"
+                        value={form.email}
+                        onChange={set("email")}
+                      />,
+                    )}
+                    {field(
+                      "phone",
+                      "Phone Number",
+                      <div className="bk-phone">
+                        <GlassSelect
+                          ariaLabel="Country code"
+                          options={DIAL_CODES}
+                          value={form.dial}
+                          onChange={(value) =>
+                            setForm((f) => ({ ...f, dial: value }))
+                          }
+                        />
+                        <input
+                          {...inputProps("phone")}
+                          type="tel"
+                          autoComplete="tel-national"
+                          inputMode="tel"
+                          placeholder="77 123 4567"
+                          value={form.phone}
+                          onChange={set("phone")}
+                        />
+                      </div>,
+                    )}
                   </div>
-                </li>
-              ))}
-              <li>
-                <span className="bk-node">
-                  <MapPin size={20} />
-                </span>
-                <div>
-                  <strong>{to.name}</strong>
-                  <small>Arrive · {arrival}</small>
-                </div>
-              </li>
-            </ol>
-            <dl className="bk-totals">
-              <div>
-                <dt>Total travel time</dt>
-                <dd>{route.duration} min</dd>
-              </div>
-              <div>
-                <dt>Total fare</dt>
-                <dd>{formatFare(total)}</dd>
-              </div>
-            </dl>
-            <div className="bk-green">
-              <Leaf size={38} />
-              <div>
-                <strong>Greener travel</strong>
-                <span>~ {route.emissionsSaved}% lower emissions</span>
-                <small>compared to car travel.</small>
-              </div>
-            </div>
-          </aside>
 
-          {stage === "done" ? (
-            <section className="bk-confirmation" aria-live="polite">
-              <span className="bk-confirmed-icon">
-                <Check size={34} />
-              </span>
-              <h3>Booking confirmed</h3>
-              <p>
-                Your seat from {from.name} to {to.name} is reserved for{" "}
-                {dateLabel} at {steps[0].time}.
-              </p>
-              <dl>
-                <div>
-                  <dt>Reference</dt>
-                  <dd>{reference}</dd>
+                  <aside className="bk-summary" aria-label="Journey summary">
+                    <h3>Journey Summary</h3>
+                    <ol className="bk-timeline">
+                      <li>
+                        <span className="bk-node">
+                          <LocateFixed size={18} />
+                        </span>
+                        <div>
+                          <strong>{from.name}</strong>
+                          <small>{steps[0].time}</small>
+                        </div>
+                      </li>
+                      {rides.map((ride) => (
+                        <li key={ride.start}>
+                          <span className="bk-node">
+                            <ModeIcon mode={ride.mode} size={18} />
+                          </span>
+                          <div>
+                            <strong>{ride.name}</strong>
+                            <small>{ride.minutes} min</small>
+                          </div>
+                        </li>
+                      ))}
+                      <li>
+                        <span className="bk-node">
+                          <MapPin size={18} />
+                        </span>
+                        <div>
+                          <strong>{to.name}</strong>
+                          <small>{arrival}</small>
+                        </div>
+                      </li>
+                    </ol>
+                    <dl className="bk-totals">
+                      <div>
+                        <dt>Estimated time</dt>
+                        <dd>{route.duration} min</dd>
+                      </div>
+                      <div>
+                        <dt>Estimated fare</dt>
+                        <dd>{formatFare(route.cost)}</dd>
+                      </div>
+                    </dl>
+                  </aside>
                 </div>
-                <div>
-                  <dt>Passenger</dt>
-                  <dd>
-                    {form.name.trim()}
-                    {passengers > 1 ? ` + ${passengers - 1}` : ""}
-                  </dd>
-                </div>
-                <div>
-                  <dt>Total paid</dt>
-                  <dd>{formatFare(total)}</dd>
-                </div>
-              </dl>
-              <p className="bk-note">
-                This is a demo booking. No payment was taken and nothing has
-                been saved.
-              </p>
-              <div className="bk-confirm-actions">
-                <Link className="bk-pay" to={trackHref}>
-                  Start tracking <ArrowRight size={20} />
-                </Link>
-                <button
-                  type="button"
-                  className="bk-secondary"
-                  onClick={onClose}
-                >
-                  Done
+                <button type="submit" className="bk-primary">
+                  Next: Select Seat <ArrowRight size={20} />
                 </button>
-              </div>
-            </section>
-          ) : (
-            <form className="bk-form" onSubmit={submit} noValidate>
-              <section className="bk-card" aria-labelledby={`${uid}-passenger`}>
-                <div className="bk-card-head">
-                  <h3 id={`${uid}-passenger`}>
-                    Passenger Details{" "}
-                    <small>
-                      ({passengers} Passenger{passengers > 1 ? "s" : ""})
-                    </small>
-                  </h3>
-                  <div className="bk-count">
-                    <span id={`${uid}-count`}>Number of passengers</span>
-                    <div role="group" aria-labelledby={`${uid}-count`}>
-                      <button
-                        type="button"
-                        aria-label="Fewer passengers"
-                        disabled={passengers <= 1}
-                        onClick={() => setPassengers((n) => n - 1)}
-                      >
-                        <Minus size={18} />
-                      </button>
-                      <output aria-live="polite">{passengers}</output>
-                      <button
-                        type="button"
-                        aria-label="More passengers"
-                        disabled={passengers >= MAX_PASSENGERS}
-                        onClick={() => setPassengers((n) => n + 1)}
-                      >
-                        <Plus size={18} />
-                      </button>
+              </form>
+            )}
+
+            {step === 2 && (
+              <div className="bk-step-form">
+                <div className="bk-vehicle" aria-live="polite">
+                  <span className="bk-vehicle-icon">
+                    <ModeIcon mode={activeRide.mode} size={22} />
+                  </span>
+                  <span>
+                    <strong>{activeRide.name}</strong>
+                    {rides.length > 1 && (
+                      <small>
+                        Ride {rideIndex + 1} of {rides.length}
+                      </small>
+                    )}
+                  </span>
+                </div>
+
+                <div className="bk-seat-layout">
+                  <div
+                    className={`bk-cabin ${activeRide.mode}`}
+                    role="group"
+                    aria-label={`Seats on ${activeRide.name}`}
+                  >
+                    <div className="bk-cabin-front">
+                      <span>{SEAT_LAYOUTS[activeRide.mode]?.front}</span>
+                      {SEAT_LAYOUTS[activeRide.mode]?.wheel ? (
+                        <Disc3 size={26} aria-hidden="true" />
+                      ) : (
+                        <ModeIcon
+                          mode={activeRide.mode}
+                          size={22}
+                          aria-hidden="true"
+                        />
+                      )}
+                    </div>
+                    <div className="bk-seat-grid">
+                      {cabin.map((row) => (
+                        <div
+                          className="bk-seat-row"
+                          key={row.flat().join()}
+                          style={{
+                            gridTemplateColumns: row
+                              .map(
+                                (group) =>
+                                  `repeat(${group.length}, minmax(0, 1fr))`,
+                              )
+                              .join(" 20px "),
+                          }}
+                        >
+                          {row.map((group, i) => [
+                            i > 0 && (
+                              <span key={`aisle-${i}`} aria-hidden="true" />
+                            ),
+                            ...group.map((seat) => {
+                              const isBooked = booked.has(seat);
+                              const isChosen = chosen.includes(seat);
+                              return (
+                                <button
+                                  key={seat}
+                                  type="button"
+                                  role="checkbox"
+                                  aria-checked={isChosen}
+                                  aria-label={`Seat ${seat}${isBooked ? ", booked" : ""}`}
+                                  disabled={isBooked}
+                                  className={`bk-seat ${isChosen ? "chosen" : ""}`}
+                                  onClick={() => toggleSeat(seat)}
+                                >
+                                  {seat}
+                                </button>
+                              );
+                            }),
+                          ])}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="bk-seat-side">
+                    <ul className="bk-legend">
+                      <li className="available">Available</li>
+                      <li className="chosen">Selected</li>
+                      <li className="booked">Booked</li>
+                    </ul>
+                    <div className="bk-selected">
+                      <strong>Selected Seats</strong>
+                      <output aria-live="polite">
+                        {chosen.length ? chosen.join(", ") : "–"}
+                      </output>
+                      <small>
+                        {chosen.length} of up to {SEAT_LIMIT}
+                      </small>
                     </div>
                   </div>
                 </div>
-                <div className="bk-grid">
-                  {field(
-                    "name",
-                    "Full Name",
-                    <input
-                      {...inputProps("name")}
-                      type="text"
-                      autoComplete="name"
-                      placeholder="e.g. Kavindu Herath"
-                      value={form.name}
-                      onChange={set("name")}
-                    />,
-                  )}
-                  {field(
-                    "email",
-                    "Email",
-                    <input
-                      {...inputProps("email")}
-                      type="email"
-                      autoComplete="email"
-                      placeholder="you@example.com"
-                      value={form.email}
-                      onChange={set("email")}
-                    />,
-                  )}
-                  {field(
-                    "phone",
-                    "Phone Number",
-                    <div className="bk-phone">
-                      <GlassSelect
-                        ariaLabel="Country code"
-                        options={DIAL_CODES}
-                        value={form.dial}
-                        onChange={(value) =>
-                          setForm((f) => ({ ...f, dial: value }))
-                        }
-                      />
-                      <input
-                        {...inputProps("phone")}
-                        type="tel"
-                        autoComplete="tel-national"
-                        inputMode="tel"
-                        placeholder="77 123 4567"
-                        value={form.phone}
-                        onChange={set("phone")}
-                      />
-                    </div>,
-                  )}
-                </div>
-              </section>
 
-              <section className="bk-card" aria-labelledby={`${uid}-payment`}>
-                <div className="bk-card-head">
-                  <h3 id={`${uid}-payment`}>Payment Details</h3>
-                  <p className="bk-secure">
-                    <Lock size={18} /> Demo checkout · no real payment is taken
+                {seatMessage && (
+                  <p className="bk-error" role="alert">
+                    {seatMessage}
                   </p>
+                )}
+                <div className="bk-nav">
+                  <button
+                    type="button"
+                    className="bk-secondary"
+                    onClick={backSeat}
+                  >
+                    <ArrowLeft size={18} /> Back
+                  </button>
+                  <button
+                    type="button"
+                    className="bk-primary"
+                    onClick={nextSeat}
+                  >
+                    {nextRide
+                      ? `Next: ${shortName(nextRide)} seat`
+                      : "Next: Payment"}{" "}
+                    <ArrowRight size={20} />
+                  </button>
                 </div>
+              </div>
+            )}
+
+            {step === 3 && (
+              <form className="bk-step-form" onSubmit={pay} noValidate>
                 <div
                   className="bk-methods"
                   role="radiogroup"
@@ -466,8 +597,9 @@ function BookingDialog({
                     </label>
                   ))}
                 </div>
+
                 {form.method === "card" ? (
-                  <div className="bk-grid two">
+                  <div className="bk-grid">
                     {field(
                       "cardName",
                       "Cardholder Name",
@@ -496,38 +628,51 @@ function BookingDialog({
                         <CreditCard size={20} aria-hidden="true" />
                       </div>,
                     )}
-                    {field(
-                      "expiry",
-                      "Expiry Date",
-                      <input
-                        {...inputProps("expiry")}
-                        type="text"
-                        inputMode="numeric"
-                        autoComplete="cc-exp"
-                        placeholder="MM / YY"
-                        value={form.expiry}
-                        onChange={setFormatted("expiry", formatExpiry)}
-                      />,
-                    )}
-                    {field(
-                      "cvv",
-                      "CVV",
-                      <div className="bk-input-icon">
+                    <div className="bk-pair">
+                      {field(
+                        "expiry",
+                        "Expiry Date",
                         <input
-                          {...inputProps("cvv")}
-                          type="password"
+                          {...inputProps("expiry")}
+                          type="text"
                           inputMode="numeric"
-                          autoComplete="cc-csc"
-                          maxLength={4}
-                          placeholder="123"
-                          value={form.cvv}
-                          onChange={setFormatted("cvv", (v) =>
-                            digits(v).slice(0, 4),
-                          )}
-                        />
-                        <Info size={20} aria-hidden="true" />
-                      </div>,
-                    )}
+                          autoComplete="cc-exp"
+                          placeholder="MM / YY"
+                          value={form.expiry}
+                          onChange={setFormatted("expiry", formatExpiry)}
+                        />,
+                      )}
+                      {field(
+                        "cvv",
+                        "CVV",
+                        <div className="bk-input-icon">
+                          <input
+                            {...inputProps("cvv")}
+                            type="password"
+                            inputMode="numeric"
+                            autoComplete="cc-csc"
+                            maxLength={4}
+                            placeholder="123"
+                            value={form.cvv}
+                            onChange={setFormatted("cvv", (v) =>
+                              digits(v).slice(0, 4),
+                            )}
+                          />
+                          <Info size={20} aria-hidden="true" />
+                        </div>,
+                      )}
+                    </div>
+                    <label className="bk-check">
+                      <input
+                        type="checkbox"
+                        checked={saveCard}
+                        onChange={(event) => setSaveCard(event.target.checked)}
+                      />
+                      <span aria-hidden="true">
+                        <Check size={14} />
+                      </span>
+                      Save this card for future payments
+                    </label>
                   </div>
                 ) : (
                   <p className="bk-wallet">
@@ -536,35 +681,64 @@ function BookingDialog({
                     your device.
                   </p>
                 )}
-              </section>
 
-              <div className="bk-total">
-                <span>Total Amount</span>
-                <strong>{formatFare(total)}</strong>
-              </div>
-              <button
-                type="submit"
-                className="bk-pay"
-                disabled={stage === "processing"}
-              >
-                {stage === "processing" ? (
-                  <>
-                    <LoaderCircle className="bk-spin" size={20} /> Processing…
-                  </>
-                ) : (
-                  <>
-                    <Lock size={20} /> Pay {formatFare(total)}
-                  </>
-                )}
-              </button>
-              <p className="bk-note">
-                Demo only. Your details stay in this browser tab and are never
-                sent anywhere.
-              </p>
-            </form>
-          )}
-        </div>
-      </div>
-    </div>
+                <dl className="bk-fare">
+                  {fares.map(({ ride, seats: count, amount }) => (
+                    <div key={ride.start}>
+                      <dt>
+                        {fares.length > 1 ? `${shortName(ride)} · ` : "Fare · "}
+                        {plural(count)}
+                      </dt>
+                      <dd>{formatFare(amount)}</dd>
+                    </div>
+                  ))}
+                  <div>
+                    <dt>Service fee</dt>
+                    <dd>{formatFare(SERVICE_FEE)}</dd>
+                  </div>
+                  <div className="total">
+                    <dt>Total</dt>
+                    <dd>{formatFare(total)}</dd>
+                  </div>
+                </dl>
+
+                <div className="bk-nav">
+                  <button
+                    type="button"
+                    className="bk-secondary"
+                    disabled={stage === "processing"}
+                    onClick={() => setStep(2)}
+                  >
+                    <ArrowLeft size={18} /> Back
+                  </button>
+                  <button
+                    type="submit"
+                    className="bk-primary"
+                    disabled={stage === "processing"}
+                  >
+                    {stage === "processing" ? (
+                      <>
+                        <LoaderCircle className="bk-spin" size={20} />{" "}
+                        Processing…
+                      </>
+                    ) : (
+                      <>
+                        <Lock size={20} /> Pay {formatFare(total)}
+                      </>
+                    )}
+                  </button>
+                </div>
+                <p className="bk-note">
+                  Demo checkout: no real payment is taken and your details stay
+                  in this browser tab. By continuing, you agree to our{" "}
+                  <span className="bk-terms">Terms of Service</span> and{" "}
+                  <span className="bk-terms">Privacy Policy</span>.
+                </p>
+              </form>
+            )}
+          </div>
+        </>
+      )}
+    </Modal>
   );
 }

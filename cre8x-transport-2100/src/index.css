@@ -1,4 +1,4 @@
-@import url("https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Manrope:wght@400;500;600;700;800&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Manrope:wght@400;500;600;700;800&family=Caveat:wght@600&display=swap");
 
 :root {
   font-family: Manrope, sans-serif;
@@ -629,6 +629,10 @@ main {
     0 18px 40px rgba(1, 7, 17, 0.48);
   scrollbar-width: thin;
   scrollbar-color: rgba(34, 211, 238, 0.55) rgba(7, 17, 31, 0.45);
+}
+
+.location-select .glass-select-menu {
+  max-height: 134px;
 }
 
 .glass-select-menu::-webkit-scrollbar {

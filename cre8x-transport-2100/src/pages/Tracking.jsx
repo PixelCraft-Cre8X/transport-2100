@@ -1,15 +1,17 @@
 import { useEffect, useEffectEvent, useRef, useState } from "react";
-import { Link, useSearchParams } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import {
   ArrowLeft,
   ArrowRight,
   Bell,
+  Ban,
   Clock3,
   MapPin,
   Pause,
   Play,
   Share2,
   ShieldCheck,
+  Ticket,
   Volume2,
   Wind,
 } from "lucide-react";
@@ -23,6 +25,9 @@ import {
 import { ModeIcon, SmartRoadPanel } from "../components/UI";
 import RouteTimeline from "../components/RouteTimeline";
 import TrackingMap from "../components/TrackingMap";
+import TicketModal from "../components/TicketModal";
+import CancelJourneyModal from "../components/CancelJourneyModal";
+import { clearBooking, useBooking } from "../utils/booking";
 import "./Tracking.css";
 
 const START_PROGRESS = 0.14;
@@ -42,7 +47,14 @@ function nextStepText(segments, index, destination) {
 
 export default function Tracking() {
   const [params] = useSearchParams();
-  const { from, to, selected, walking } = readJourney(params);
+  const booking = useBooking();
+  const navigate = useNavigate();
+  // A paid booking fixes the journey being tracked, whatever the URL says.
+  const { from, to, selected, walking } = readJourney(
+    booking ? new URLSearchParams(booking.query) : params,
+  );
+  const [ticketOpen, setTicketOpen] = useState(false);
+  const [cancelOpen, setCancelOpen] = useState(false);
   const segments = withStartTimes(selected.segments);
   const [progress, setProgress] = useState(START_PROGRESS);
   const [playing, setPlaying] = useState(true);
@@ -293,9 +305,46 @@ export default function Tracking() {
             <button type="button" className="tk-action" onClick={share}>
               <Share2 size={18} /> {shared ? "Link copied" : "Share trip"}
             </button>
+            {booking && (
+              <>
+                <button
+                  type="button"
+                  className="tk-action"
+                  aria-haspopup="dialog"
+                  onClick={() => setTicketOpen(true)}
+                >
+                  <Ticket size={18} /> View ticket
+                </button>
+                <button
+                  type="button"
+                  className="tk-action tk-cancel"
+                  aria-haspopup="dialog"
+                  onClick={() => setCancelOpen(true)}
+                >
+                  <Ban size={18} /> Cancel journey
+                </button>
+              </>
+            )}
           </div>
         </aside>
       </div>
+      <TicketModal
+        open={ticketOpen}
+        booking={booking}
+        onClose={() => setTicketOpen(false)}
+      />
+      <CancelJourneyModal
+        open={cancelOpen}
+        booking={booking}
+        onClose={() => setCancelOpen(false)}
+        onConfirm={() => {
+          const reference = booking.reference;
+          const back = `/journey?${booking.query}`;
+          setCancelOpen(false);
+          clearBooking();
+          navigate(back, { state: { cancelled: reference } });
+        }}
+      />
       <section className="tk-lower" aria-label="Smart road intelligence">
         <SmartRoadPanel />
         <div className="system-stats">

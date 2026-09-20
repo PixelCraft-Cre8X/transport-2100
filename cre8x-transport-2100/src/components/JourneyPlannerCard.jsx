@@ -37,12 +37,17 @@ export default function JourneyPlannerCard() {
             <span className="field-label">FROM</span>
             <GlassSelect
               aria-label="Starting location"
-              options={journeyDestinations.map((location) => ({
+              className="location-select"
+              options={locations.map((location) => ({
                 label: location.name,
                 value: location.name,
               }))}
               value={from}
               onChange={(value) => {
+                if (value === to) {
+                  setMessage("Choose a starting point different from your destination.");
+                  return;
+                }
                 setFrom(value);
                 setMessage("");
               }}
@@ -66,12 +71,17 @@ export default function JourneyPlannerCard() {
             <span className="field-label">TO</span>
             <GlassSelect
               aria-label="Destination"
-              options={journeyDestinations.map((location) => ({
+              className="location-select"
+              options={locations.map((location) => ({
                 label: location.name,
                 value: location.name,
               }))}
               value={to}
               onChange={(value) => {
+                if (value === from) {
+                  setMessage("Choose a destination different from your starting point.");
+                  return;
+                }
                 setTo(value);
                 setMessage("");
               }}
