@@ -118,7 +118,13 @@ test("acceptance followed by a start phrase opens booking for the exact journey"
 
 test("view journey opens the current recommendation in My Journey", () => {
   const recommended = turn("Take me to Galle");
-  for (const phrase of ["View journey", "Show my journey"]) {
+  for (const phrase of [
+    "View journey",
+    "Show my journey",
+    "View my journey page",
+    "Open the My Journey tab",
+    "Go to my journey",
+  ]) {
     const viewed = turn(phrase, recommended.conversation);
     const url = new URL(viewed.navigation, "https://moveone.test");
     assert.equal(url.pathname, "/journey", phrase);
