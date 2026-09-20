@@ -277,7 +277,6 @@ export default function TrackingMap({
                 );
               })}
 
-            {layers.traffic && <path className="tk-traffic" d={map.line} />}
             {map.parts.map((part, i) => (
               <g key={`${part.mode}-${i}`} className={`tk-leg ${part.mode}`}>
                 <path
@@ -299,6 +298,17 @@ export default function TrackingMap({
                   >
                     <circle cx={c.xy[0]} cy={c.xy[1]} r="14" />
                     <circle className="dot" cx={c.xy[0]} cy={c.xy[1]} r="5" />
+              {layers.traffic &&
+                map.parts
+                  .filter((part) => part.mode === "bus")
+                  .map((part, i) => (
+                    <path
+                      key={`traffic-bus-${i}`}
+                      className="tk-traffic-bus"
+                      d={toPath(part.points)}
+                      pathLength="100"
+                    />
+                  ))}
                   </g>
                 ))}
 
