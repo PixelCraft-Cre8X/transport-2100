@@ -16,12 +16,20 @@ import {
   Smartphone,
   X,
 } from "lucide-react";
-import { formatFare } from "../data/journeys";
+import {
+  clockTime,
+  formatFare,
+  fromDateInput,
+  departureDay,
+  parseClock,
+  toDateInput,
+} from "../data/journeys";
 import {
   MOCK_BOOKED_SEATS,
   MOCK_CARD,
   MOCK_DEFAULT_SEATS,
   MOCK_PASSENGER,
+  MOCK_TRIP,
   SEAT_LIMIT,
   SEAT_LAYOUTS,
   seatRows,
@@ -86,6 +94,13 @@ function validatePassenger(form) {
     errors.email = "Enter a valid email address.";
   if (digits(form.phone).length < 7 || digits(form.phone).length > 12)
     errors.phone = "Enter a valid phone number.";
+  if (
+    !form.date ||
+    fromDateInput(form.date) < fromDateInput(toDateInput(new Date()))
+  )
+    errors.date = "Choose today or a later date.";
+  if (!/^\d{1,2}:\d{2}$/.test(form.time))
+    errors.time = "Choose a departure time.";
   return errors;
 }
 
@@ -111,9 +126,8 @@ function BookingDialog({
   onClose,
   from,
   to,
-  steps,
+  steps: routeSteps,
   route,
-  arrival,
   query,
   trackHref,
 }) {
@@ -129,7 +143,7 @@ function BookingDialog({
   const [rideIndex, setRideIndex] = useState(0); // which ride's seat is being chosen
   const [seats, setSeats] = useState(() =>
     Object.fromEntries(
-      steps
+      routeSteps
         .filter((s) => s.mode !== "walk")
         .map((ride) => [ride.start, MOCK_DEFAULT_SEATS[ride.mode]]),
     ),
@@ -137,6 +151,8 @@ function BookingDialog({
   const [saveCard, setSaveCard] = useState(MOCK_CARD.saveCard);
   const [form, setForm] = useState({
     ...MOCK_PASSENGER,
+    date: toDateInput(departureDay()),
+    time: MOCK_TRIP.time,
     method: "card",
     cardName: MOCK_CARD.cardName,
     cardNumber: MOCK_CARD.cardNumber,
@@ -144,6 +160,13 @@ function BookingDialog({
     cvv: MOCK_CARD.cvv,
   });
 
+  // Times shown here follow the departure the traveller picks.
+  const base = parseClock(form.time);
+  const steps = routeSteps.map((step) => ({
+    ...step,
+    time: clockTime(step.start, { base }),
+  }));
+  const arrival = clockTime(route.duration, { base });
   const rides = steps.filter((s) => s.mode !== "walk");
   const activeRide = rides[rideIndex];
   const nextRide = rides[rideIndex + 1];
@@ -262,7 +285,8 @@ function BookingDialog({
         query,
         passenger: form,
         seats,
-        arrival,
+        day: fromDateInput(form.date),
+        time: form.time,
       });
       saveBooking(created);
       setBooking(created);
@@ -400,6 +424,29 @@ function BookingDialog({
                         />
                       </div>,
                     )}
+                    <div className="bk-pair">
+                      {field(
+                        "date",
+                        "Travel Date",
+                        <input
+                          {...inputProps("date")}
+                          type="date"
+                          min={toDateInput(new Date())}
+                          value={form.date}
+                          onChange={set("date")}
+                        />,
+                      )}
+                      {field(
+                        "time",
+                        "Departure Time",
+                        <input
+                          {...inputProps("time")}
+                          type="time"
+                          value={form.time}
+                          onChange={set("time")}
+                        />,
+                      )}
+                    </div>
                   </div>
 
                   <aside className="bk-summary" aria-label="Journey summary">

@@ -1,6 +1,6 @@
 import { useMemo, useSyncExternalStore } from "react";
 import { SERVICE_FEE } from "../data/booking";
-import { departureDay, formatDay } from "../data/journeys";
+import { clockTime, formatDay, parseClock } from "../data/journeys";
 
 // The confirmed booking lives in sessionStorage so it survives moving between
 // My Journey and Live Map (and a refresh) but never leaves this browser tab.
@@ -83,9 +83,10 @@ export function createBooking({
   query,
   passenger,
   seats,
-  arrival,
+  day,
+  time,
 }) {
-  const day = departureDay();
+  const base = parseClock(time);
   const stamp = `${String(day.getFullYear()).slice(2)}${pad(day.getMonth() + 1)}${pad(day.getDate())}`;
   const rides = steps.filter((s) => s.mode !== "walk");
   const passengers = Math.max(...rides.map((ride) => seats[ride.start].length));
@@ -101,8 +102,9 @@ export function createBooking({
     to: to.name,
     query,
     date: formatDay(day, { year: true }),
-    departure: steps[0].time,
-    arrival,
+    departure: clockTime(0, { base }),
+    departureMinutes: base,
+    arrival: clockTime(route.duration, { base }),
     duration: route.duration,
     passengers,
     services: rides.map((ride) => ({
