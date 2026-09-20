@@ -239,7 +239,7 @@ function QuickDestinationEditor({
   onCancel,
 }) {
   return (
-    <div className="modal-backdrop" onClick={onCancel}>
+    <div className="modal-backdrop destination-editor-backdrop" onClick={onCancel}>
       <section
         className="destination-editor glass-modal"
         role="dialog"
