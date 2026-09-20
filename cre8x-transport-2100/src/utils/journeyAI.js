@@ -37,7 +37,10 @@ const stylePatterns = [
     "comfortable",
     /\b(comfortable|comfort|quiet|relax|relaxed|peaceful|easy on me|elderly|grandmother|grandfather|senior|older person|older adult)\b/,
   ],
-  ["healthy", /\b(healthy|walking|exercise|walk more|more walking|active route)\b/],
+  [
+    "healthy",
+    /\b(healthy|walking|exercise|walk more|more walking|active route)\b/,
+  ],
 ];
 const modePatterns = {
   air: "air taxis|air taxi|air transport|air travel|air",

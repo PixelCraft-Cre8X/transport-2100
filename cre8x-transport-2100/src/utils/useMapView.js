@@ -25,7 +25,10 @@ export function useMapView() {
     [],
   );
   const reset = useCallback(() => setView({ zoom: 1, x: 0, y: 0 }), []);
-  const recentre = useCallback(() => setView((v) => ({ ...v, x: 0, y: 0 })), []);
+  const recentre = useCallback(
+    () => setView((v) => ({ ...v, x: 0, y: 0 })),
+    [],
+  );
 
   return {
     view,
@@ -40,7 +43,10 @@ export function useMapView() {
   };
 }
 
-/** Mouse-wheel zoom and drag-to-pan on `ref`'s element. Touch is left to native scrolling. */
+/**
+ * Mouse-wheel zoom, drag-to-pan and two-finger pinch on `ref`'s element. The
+ * element should use `touch-action: pan-y` so a vertical swipe still scrolls the page.
+ */
 export function useMapGestures(ref, { onZoom, onPan }) {
   const latest = useRef({ onZoom, onPan });
   useEffect(() => {
@@ -50,24 +56,52 @@ export function useMapGestures(ref, { onZoom, onPan }) {
   useEffect(() => {
     const el = ref.current;
     if (!el) return undefined;
-    let drag = null;
+    const pointers = new Map();
+    const centre = () => {
+      const rect = el.getBoundingClientRect();
+      return [rect.left + rect.width / 2, rect.top + rect.height / 2];
+    };
+    // Distance between and midpoint of the first two active pointers.
+    const pinch = () => {
+      const [a, b] = [...pointers.values()];
+      return {
+        gap: Math.hypot(a.x - b.x, a.y - b.y),
+        x: (a.x + b.x) / 2,
+        y: (a.y + b.y) / 2,
+      };
+    };
 
     const down = (e) => {
-      if (e.button !== 0 || e.pointerType === "touch" || e.target.closest("button, a")) return;
-      drag = { x: e.clientX, y: e.clientY };
+      if (e.pointerType === "mouse" && e.button !== 0) return;
+      if (e.target.closest("button, a")) return;
+      pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
       el.setPointerCapture(e.pointerId);
       el.classList.add("is-dragging");
     };
     const move = (e) => {
-      if (!drag) return;
-      latest.current.onPan(e.clientX - drag.x, e.clientY - drag.y);
-      drag = { x: e.clientX, y: e.clientY };
+      const last = pointers.get(e.pointerId);
+      if (!last) return;
+      if (pointers.size === 2) {
+        const before = pinch();
+        pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+        const after = pinch();
+        const [cx, cy] = centre();
+        latest.current.onPan(after.x - before.x, after.y - before.y);
+        if (before.gap > 0)
+          latest.current.onZoom(
+            after.gap / before.gap,
+            after.x - cx,
+            after.y - cy,
+          );
+      } else {
+        latest.current.onPan(e.clientX - last.x, e.clientY - last.y);
+        pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+      }
     };
     const up = (e) => {
-      if (!drag) return;
-      drag = null;
+      if (!pointers.delete(e.pointerId)) return;
       el.releasePointerCapture?.(e.pointerId);
-      el.classList.remove("is-dragging");
+      if (!pointers.size) el.classList.remove("is-dragging");
     };
     const wheel = (e) => {
       e.preventDefault();

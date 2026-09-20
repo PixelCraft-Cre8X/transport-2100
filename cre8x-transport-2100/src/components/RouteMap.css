@@ -38,6 +38,7 @@
 .rm-interactive {
   cursor: grab;
   user-select: none;
+  touch-action: pan-y;
 }
 
 .rm-interactive.is-dragging {
