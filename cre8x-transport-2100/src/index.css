@@ -34,6 +34,44 @@ html {
   background: var(--bg);
 }
 
+@media (min-width: 1024px) {
+  html {
+    scrollbar-color: rgba(34, 211, 238, 0.72) rgba(7, 17, 31, 0.72);
+    scrollbar-gutter: stable;
+    scrollbar-width: thin;
+  }
+
+  html::-webkit-scrollbar {
+    width: 10px;
+  }
+
+  html::-webkit-scrollbar-track {
+    border-left: 1px solid rgba(34, 211, 238, 0.08);
+    background: rgba(7, 17, 31, 0.72);
+  }
+
+  html::-webkit-scrollbar-thumb {
+    min-height: 56px;
+    border: 2px solid rgba(7, 17, 31, 0.72);
+    border-radius: 999px;
+    background: linear-gradient(
+      180deg,
+      rgba(34, 211, 238, 0.9),
+      rgba(139, 92, 246, 0.88)
+    );
+    background-clip: padding-box;
+  }
+
+  html::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(
+      180deg,
+      rgba(103, 232, 249, 0.98),
+      rgba(167, 139, 250, 0.96)
+    );
+    background-clip: padding-box;
+  }
+}
+
 body {
   margin: 0;
   min-width: 320px;
