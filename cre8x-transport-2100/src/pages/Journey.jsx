@@ -28,7 +28,7 @@ import { ModeIcon } from "../components/UI";
 import JourneyMap from "../components/JourneyMap";
 import BookingModal from "../components/BookingModal";
 import TicketModal from "../components/TicketModal";
-import { useBooking } from "../utils/booking";
+import { useActiveBooking } from "../utils/booking";
 import DestinationArt from "../components/DestinationArt";
 import "./Journey.css";
 
@@ -65,7 +65,7 @@ function transferLabel(count) {
 
 export default function Journey() {
   const [params, setParams] = useSearchParams();
-  const booking = useBooking();
+  const booking = useActiveBooking();
   const location = useLocation();
   const navigate = useNavigate();
   const locked = Boolean(booking);

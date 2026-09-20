@@ -41,6 +41,19 @@ const subscribe = (listener) => {
 export const saveBooking = (booking) => write(JSON.stringify(booking));
 export const clearBooking = () => write(null);
 
+// A booking is "completed" once the journey has been tracked to arrival. It
+// stops locking the route, so another journey can be planned, but its ticket
+// stays available on the page that finished it.
+export function completeBooking() {
+  try {
+    const stored = JSON.parse(read());
+    if (stored && !stored.completed)
+      saveBooking({ ...stored, completed: true });
+  } catch {
+    // Nothing valid stored, so there is nothing to complete.
+  }
+}
+
 export function useBooking() {
   const raw = useSyncExternalStore(subscribe, read, () => null);
   return useMemo(() => {
@@ -53,6 +66,12 @@ export function useBooking() {
       return null;
     }
   }, [raw]);
+}
+
+/** The booking that currently locks the route: paid, and not yet completed. */
+export function useActiveBooking() {
+  const booking = useBooking();
+  return booking && !booking.completed ? booking : null;
 }
 
 /**
