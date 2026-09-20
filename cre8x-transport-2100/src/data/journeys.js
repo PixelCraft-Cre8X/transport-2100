@@ -72,6 +72,12 @@ export function buildRoutes(from, to, walking) {
                 ? `${from.name} SkyRail interchange`
                 : `${to.name} mobility hub`,
           status: mode === "walk" ? "Step-free path" : "On time",
+          delayMinutes:
+            mode === "walk"
+              ? 0
+              : Math.random() < 0.8
+                ? 0
+                : Math.floor(Math.random() * 8) + 1,
         };
       });
       return {
