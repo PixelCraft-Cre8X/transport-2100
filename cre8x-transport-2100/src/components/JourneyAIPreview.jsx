@@ -1,4 +1,4 @@
-import { useEffect, useEffectEvent, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import {
   Accessibility,
@@ -12,60 +12,30 @@ import {
   X,
 } from "lucide-react";
 import { formatFare, journeyQuery, readJourney } from "../data/journeys";
-import { locations } from "../data/network";
+import { createJourneyAIResponse } from "../utils/journeyAI";
+import { microphoneNotice } from "../utils/microphone";
 import {
-  createJourneyAIResponse,
-  parseJourneyRequest,
-  recommendJourney,
-} from "../utils/journeyAI";
+  createVoiceSession,
+  initialVoiceState,
+  recognitionUnavailable,
+} from "../utils/voiceSession";
+import {
+  createJourneyConversation,
+  handleJourneyRequest,
+} from "../utils/journeyConversation";
 import { ModeIcon } from "./UI";
 
-const greeting =
-  "Hi, where would you like to go? Tell me how I can help plan your journey.";
-const microphoneUnavailable =
-  "Microphone access is unavailable. You can still type your request.";
-const recognitionUnavailable =
-  "Voice recognition is not supported in this browser. You can still type your request.";
-const speechErrors = {
-  "not-allowed": microphoneUnavailable,
-  "service-not-allowed": recognitionUnavailable,
-  "audio-capture": microphoneUnavailable,
-  "no-speech":
-    "I didn't hear anything. Tap the microphone to try again, or type below.",
-  network:
-    "Voice recognition couldn't connect. Try again or type your request.",
-  aborted: "Listening stopped. Tap to speak again or type below.",
-};
 const statusLabels = {
-  idle: "Tap to speak",
+  idle: "Tap to start conversation",
   "requesting-permission": "Requesting microphone permission…",
   greeting: "Journey AI is speaking…",
   listening: "Listening…",
   processing: "Finding your best journey…",
-  result: "Tap to speak",
+  result: "Tap to start conversation",
   speaking: "Journey AI is speaking…",
-  "voice-error": "Tap to try again",
+  paused: "Conversation paused",
+  "voice-error": "Voice unavailable — you can type below",
 };
-
-function releaseRecognition(ref) {
-  const recognition = ref.current;
-  ref.current = null;
-  if (!recognition) return;
-  recognition.onstart = recognition.onresult = recognition.onerror = null;
-  recognition.onend = recognition.onnomatch = null;
-  try {
-    recognition.abort();
-  } catch {
-    // Some browsers throw if the recognition service has already stopped.
-  }
-}
-
-function releaseSpeech(ref) {
-  if (!ref.current) return;
-  ref.current.onend = ref.current.onerror = null;
-  ref.current = null;
-  window.speechSynthesis?.cancel();
-}
 
 export default function JourneyAIPreview({ open, ...props }) {
   return open ? <JourneyAIDialog {...props} /> : null;
@@ -86,22 +56,15 @@ function JourneyAIDialog({
     window.speechSynthesis && window.SpeechSynthesisUtterance,
   );
   const [openingPermission] = useState(permission);
-  const [status, setStatus] = useState(
-    permission === "granted" ? "greeting" : "voice-error",
-  );
+  const [voice, setVoice] = useState(() => initialVoiceState(permission));
+  const { status, notice, conversationActive } = voice;
   const [text, setText] = useState("");
   const [lastRequest, setLastRequest] = useState(null);
   const [result, setResult] = useState(null);
-  const [notice, setNotice] = useState("");
   const dialogRef = useRef(null);
   const microphoneRef = useRef(null);
-  const inputRef = useRef(null);
-  const recognitionRef = useRef(null);
-  const utteranceRef = useRef(null);
-  const startupRef = useRef(null);
-  const processingRef = useRef(null);
-  const activityRef = useRef(0);
-  const manualStopRef = useRef(false);
+  const closeButtonRef = useRef(null);
+  const voiceSessionRef = useRef(null);
   const speaking = status === "greeting" || status === "speaking";
   const busy = status === "processing" || status === "requesting-permission";
   const params = new URLSearchParams(search);
@@ -115,205 +78,41 @@ function JourneyAIDialog({
     style: params.get("style") ?? currentJourney.selected?.id,
     walking: params.get("walking") ?? currentJourney.walking,
   };
+  const [conversation, setConversation] = useState(() =>
+    createJourneyConversation(context),
+  );
+  const conversationRef = useRef(conversation);
   const route = result?.status === "success" ? result.route : null;
   const response = result ? createJourneyAIResponse(result) : "";
-  const answer = route
-    ? response.slice(0, response.indexOf(".") + 1)
-    : response;
+  const answer =
+    route && result.kind !== "answer"
+      ? response.slice(0, response.indexOf(".") + 1)
+      : response;
   const voiceNotice =
     notice ||
-    (permission !== "granted" && permission !== "requesting-permission"
-      ? microphoneUnavailable
-      : !Recognition
-        ? recognitionUnavailable
-        : "");
+    microphoneNotice(permission) ||
+    (!Recognition ? recognitionUnavailable : "");
   const stepFree = route?.segments
     .filter(({ mode }) => mode === "walk")
     .every(({ status }) => status === "Step-free path");
 
-  function cancelActivity() {
-    activityRef.current += 1;
-    window.clearTimeout(startupRef.current);
-    window.clearTimeout(processingRef.current);
-    releaseRecognition(recognitionRef);
-    releaseSpeech(utteranceRef);
-  }
-
-  function speakMessage(message, kind = "speaking", onFinished) {
-    releaseRecognition(recognitionRef);
-    releaseSpeech(utteranceRef);
-    if (!canSpeak) {
-      if (onFinished) onFinished();
-      else setStatus("result");
-      return;
-    }
-    try {
-      window.speechSynthesis.cancel();
-      const utterance = new window.SpeechSynthesisUtterance(message);
-      utterance.lang = "en-US";
-      utteranceRef.current = utterance;
-      utterance.onend = () => {
-        if (utteranceRef.current !== utterance) return;
-        utteranceRef.current = null;
-        setStatus("idle");
-        // Let the speech engine finish its end event before opening the microphone.
-        if (onFinished) startupRef.current = window.setTimeout(onFinished, 0);
-      };
-      utterance.onerror = () => {
-        if (utteranceRef.current !== utterance) return;
-        utteranceRef.current = null;
-        setStatus("voice-error");
-        setNotice(
-          "Spoken playback is unavailable. Tap the microphone or type below.",
-        );
-      };
-      setStatus(kind);
-      window.speechSynthesis.speak(utterance);
-    } catch {
-      releaseSpeech(utteranceRef);
-      setStatus("voice-error");
-      setNotice(
-        "Spoken playback is unavailable. Tap the microphone or type below.",
-      );
-    }
-  }
-
-  function findJourney(request, source) {
-    cancelActivity();
-    setLastRequest({ text: request, source });
-    setText("");
-    setResult(null);
-    setNotice("");
-    setStatus("processing");
-    // Calculate from the existing network after React renders the processing state.
-    processingRef.current = window.setTimeout(() => {
-      const recommendation = recommendJourney(
-        parseJourneyRequest(request, context),
-      );
-      setResult(recommendation);
-      setStatus("result");
-        speakMessage(createJourneyAIResponse(recommendation));
-    }, 0);
-  }
-
-  function startListening() {
-    if (!Recognition) {
-      setStatus("voice-error");
-      setNotice(recognitionUnavailable);
-      return;
-    }
-    // Never listen over a greeting, recommendation, or other active spoken audio.
-    if (window.speechSynthesis?.speaking) {
-      setStatus("voice-error");
-      setNotice(
-        "Audio is still playing. Wait until it finishes, then tap to speak.",
-      );
-      return;
-    }
-    cancelActivity();
-    setStatus("listening");
-    setNotice("");
-    setLastRequest(null);
-    setResult(null);
-    setText("");
-    manualStopRef.current = false;
-    let transcript = "";
-    try {
-      const recognition = new Recognition();
-      recognitionRef.current = recognition;
-      recognition.lang = "en-US";
-      recognition.continuous = false;
-      recognition.interimResults = false;
-      recognition.onresult = (event) => {
-        if (recognitionRef.current !== recognition) return;
-        const recognized = event.results[event.resultIndex ?? 0];
-        if (
-          recognized?.isFinal === false ||
-          !recognized?.[0]?.transcript?.trim()
-        )
-          return;
-        transcript = recognized[0].transcript.trim();
-        setLastRequest({ text: transcript, source: "voice" });
-      };
-      recognition.onerror = (event) => {
-        if (recognitionRef.current !== recognition) return;
-        releaseRecognition(recognitionRef);
-        setStatus("voice-error");
-        setNotice(
-          speechErrors[event.error] ||
-            "Voice recognition is unavailable. Try again or type below.",
-        );
-        if (event.error === "not-allowed" || event.error === "audio-capture")
-          onMicrophoneUnavailable();
-      };
-      recognition.onnomatch = () => {
-        if (recognitionRef.current !== recognition) return;
-        releaseRecognition(recognitionRef);
-        setStatus("voice-error");
-        setNotice(
-          "I couldn't understand that. Try speaking again or type below.",
-        );
-      };
-      recognition.onend = () => {
-        if (recognitionRef.current !== recognition) return;
-        releaseRecognition(recognitionRef);
-        if (transcript) findJourney(transcript, "voice");
-        else {
-          setStatus("idle");
-          if (!manualStopRef.current) setNotice(speechErrors["no-speech"]);
-        }
-      };
-      recognition.start();
-    } catch {
-      releaseRecognition(recognitionRef);
-      setStatus("voice-error");
-      setNotice("Voice recognition couldn't start. Try again or type below.");
-    }
-  }
-
-  async function handleMicrophone() {
-    if (busy) return;
-    if (speaking) {
-      cancelActivity();
-      setStatus("idle");
-      return;
-    }
-    if (recognitionRef.current) {
-      manualStopRef.current = true;
-      try {
-        recognitionRef.current.stop();
-      } catch {
-        releaseRecognition(recognitionRef);
-        setStatus("idle");
-      }
-      return;
-    }
-    if (permission !== "granted") {
-      const activity = ++activityRef.current;
-      setStatus("requesting-permission");
-      setNotice("");
-      const nextPermission = await onRequestMicrophone();
-      if (activity !== activityRef.current) return;
-      if (nextPermission !== "granted") {
-        setStatus("voice-error");
-        setNotice(microphoneUnavailable);
-        inputRef.current?.focus();
-        return;
-      }
-    }
-    startListening();
+  function handleMicrophone() {
+    voiceSessionRef.current?.toggle();
   }
 
   function editRequest(value) {
-    cancelActivity();
+    voiceSessionRef.current?.beginTyping();
     setText(value);
-    setStatus("idle");
-    setNotice("");
   }
 
   function submit(event) {
     event.preventDefault();
-    if (text.trim()) findJourney(text.trim(), "text");
+    if (text.trim()) voiceSessionRef.current?.submit(text.trim(), "text");
+  }
+
+  function closeDialog() {
+    voiceSessionRef.current?.dispose();
+    onClose();
   }
 
   function openJourney(path) {
@@ -323,32 +122,56 @@ function JourneyAIDialog({
       route.id,
       result.intent.walking,
     );
-    onClose();
+    closeDialog();
     navigate(`${path}?${query}`);
   }
 
-  const greetOnOpen = useEffectEvent(() => {
-    speakMessage(greeting, "greeting");
-  });
-
   useEffect(() => {
-    if (openingPermission !== "granted") return;
-    // Each explicit opening greets once, including under development StrictMode.
-    startupRef.current = window.setTimeout(() => greetOnOpen(), 0);
-    return () => window.clearTimeout(startupRef.current);
-  }, [openingPermission]);
+    const session = createVoiceSession({
+      permission: openingPermission,
+      Recognition,
+      synthesis: window.speechSynthesis,
+      Utterance: window.SpeechSynthesisUtterance,
+      requestMicrophone: onRequestMicrophone,
+      onMicrophoneUnavailable,
+      onState: setVoice,
+      onTranscript(request, source) {
+        setLastRequest({ text: request, source });
+        setText("");
+        setResult(null);
+      },
+      onRequest(request) {
+        const turn = handleJourneyRequest(request, conversationRef.current);
+        // Update immediately so the next browser callback sees the latest turn.
+        conversationRef.current = turn.conversation;
+        setConversation(turn.conversation);
+        setResult(turn.result);
+        return createJourneyAIResponse(turn.result);
+      },
+    });
+    voiceSessionRef.current = session;
+    session.open();
+    return () => {
+      session.dispose();
+      if (voiceSessionRef.current === session) voiceSessionRef.current = null;
+    };
+  }, [
+    Recognition,
+    openingPermission,
+    onRequestMicrophone,
+    onMicrophoneUnavailable,
+  ]);
 
   useEffect(() => {
     const previousFocus = returnFocusRef.current ?? document.activeElement;
     const previousOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
+    // Keep the full dialog visible; typing should only start when chosen.
     const focusTarget =
-      openingPermission === "granted" &&
-      microphoneRef.current &&
-      !microphoneRef.current.disabled
+      microphoneRef.current && !microphoneRef.current.disabled
         ? microphoneRef.current
-        : inputRef.current;
-    focusTarget?.focus();
+        : closeButtonRef.current;
+    focusTarget?.focus({ preventScroll: true });
     const backdrop = dialogRef.current.parentElement;
     const siblings = [...backdrop.parentElement.children]
       .filter((element) => element !== backdrop)
@@ -360,6 +183,7 @@ function JourneyAIDialog({
     function handleKeyDown(event) {
       if (event.key === "Escape") {
         event.preventDefault();
+        voiceSessionRef.current?.dispose();
         onClose();
       }
       if (event.key !== "Tab") return;
@@ -380,11 +204,6 @@ function JourneyAIDialog({
     }
     document.addEventListener("keydown", handleKeyDown);
     return () => {
-      activityRef.current += 1;
-      window.clearTimeout(startupRef.current);
-      window.clearTimeout(processingRef.current);
-      releaseRecognition(recognitionRef);
-      releaseSpeech(utteranceRef);
       document.removeEventListener("keydown", handleKeyDown);
       document.body.style.overflow = previousOverflow;
       siblings.forEach(([element, wasInert]) => {
@@ -392,10 +211,10 @@ function JourneyAIDialog({
       });
       if (previousFocus?.isConnected) previousFocus.focus();
     };
-  }, [onClose, openingPermission, returnFocusRef]);
+  }, [onClose, returnFocusRef]);
 
   return (
-    <div className="modal-backdrop journey-ai-backdrop" onClick={onClose}>
+    <div className="modal-backdrop journey-ai-backdrop" onClick={closeDialog}>
       <section
         ref={dialogRef}
         className="journey-ai-dialog glass-modal"
@@ -404,6 +223,7 @@ function JourneyAIDialog({
         aria-labelledby="journey-ai-title"
         data-state={status}
         data-conversation={Boolean(lastRequest || result)}
+        data-voice-active={conversationActive}
         onClick={(event) => event.stopPropagation()}
       >
         <header className="journey-ai-heading">
@@ -415,17 +235,18 @@ function JourneyAIDialog({
             <h2 id="journey-ai-title">Journey AI</h2>
           </div>
           <button
+            ref={closeButtonRef}
             className="journey-ai-close icon-button"
             type="button"
             aria-label="Close Journey AI"
-            onClick={onClose}
+            onClick={closeDialog}
           >
             <X size={20} aria-hidden="true" />
           </button>
         </header>
-        {context.from && context.to && (
+        {conversation.from && conversation.to && (
           <p className="journey-ai-context">
-            <span>Current journey</span> {context.from} → {context.to}
+            <span>Current journey</span> {conversation.from} → {conversation.to}
           </p>
         )}
         <div className="journey-ai-voice">
@@ -439,13 +260,13 @@ function JourneyAIDialog({
             data-state={status}
             disabled={(!Recognition && !speaking) || busy}
             aria-label={
-              speaking
-                ? "Stop Journey AI speaking"
-                : status === "listening"
-                  ? "Stop listening"
-                  : "Speak your journey request"
+              speaking || (conversationActive && status !== "paused")
+                ? "Pause voice conversation"
+                : status === "paused"
+                  ? "Resume voice conversation"
+                  : "Start voice conversation"
             }
-            aria-pressed={status === "listening"}
+            aria-pressed={conversationActive && status !== "paused"}
             aria-describedby="journey-ai-voice-status"
             onClick={handleMicrophone}
           >
@@ -479,6 +300,14 @@ function JourneyAIDialog({
               {voiceNotice}
             </p>
           )}
+          <button
+            className="journey-ai-end"
+            type="button"
+            disabled={!conversationActive && !speaking && !busy}
+            onClick={() => voiceSessionRef.current?.end()}
+          >
+            End conversation
+          </button>
         </div>
         <div
           className="journey-ai-content"
@@ -588,23 +417,13 @@ function JourneyAIDialog({
                 <button
                   type="button"
                   className="journey-ai-replay"
-                  onClick={() => {
-                    cancelActivity();
-                    setNotice("");
-                    speakMessage(response);
-                  }}
+                  onClick={() => voiceSessionRef.current?.speak(response)}
                 >
                   <Volume2 size={16} aria-hidden="true" />
                   Hear again
                 </button>
               )}
             </div>
-          )}
-          {result?.status === "error" && (
-            <p className="journey-ai-network">
-              Available destinations:{" "}
-              {locations.map(({ name }) => name).join(" · ")}
-            </p>
           )}
         </div>
         <footer className="journey-ai-composer">
@@ -616,10 +435,10 @@ function JourneyAIDialog({
               Type a journey request
             </label>
             <input
-              ref={inputRef}
               id="journey-ai-request"
               value={text}
               autoComplete="off"
+              onFocus={() => voiceSessionRef.current?.beginTyping()}
               onChange={(event) => editRequest(event.target.value)}
               placeholder="Ask Journey AI…"
             />

@@ -4,7 +4,6 @@ import {
   Building2,
   BusFront,
   ChevronDown,
-  Leaf,
   LocateFixed,
   MapPin,
   Minus,
@@ -132,7 +131,6 @@ export default function TrackingMap({
   currentIndex,
   minutesToNext,
   arrival,
-  emissionsSaved,
 }) {
   const overlay = useMediaQuery("(min-width: 1320px)");
   const [ref, { w, h }] = useElementSize();
@@ -487,16 +485,6 @@ export default function TrackingMap({
               ))}
             </ul>
           )}
-        </div>
-        <div className="tk-side-card tk-green">
-          <span className="tk-green-icon">
-            <Leaf size={30} />
-          </span>
-          <div>
-            <strong>Greener travel</strong>
-            <span>~ {emissionsSaved}% lower emissions</span>
-            <small>compared to car travel.</small>
-          </div>
         </div>
       </div>
     </section>

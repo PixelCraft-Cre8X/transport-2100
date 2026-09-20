@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import logoImage from "../assets/logo.png";
 import JourneyAIPreview from "./JourneyAIPreview";
+import { requestMicrophoneAccess } from "../utils/microphone";
 
 const links = [
   { to: "/", label: "Discover", icon: Compass },
@@ -105,6 +106,7 @@ export default function Layout() {
   const { pathname, search } = useLocation();
   const [journeyAIOpen, setJourneyAIOpen] = useState(false);
   const [microphonePermission, setMicrophonePermission] = useState("unknown");
+  const microphonePermissionRef = useRef("unknown");
   const permissionRequestRef = useRef(null);
   const openingRef = useRef(0);
   const returnFocusRef = useRef(null);
@@ -119,37 +121,23 @@ export default function Layout() {
   }, []);
 
   const requestMicrophone = useCallback(() => {
-    if (microphonePermission === "granted") return Promise.resolve("granted");
     if (permissionRequestRef.current) return permissionRequestRef.current;
-    if (!navigator.mediaDevices?.getUserMedia) {
-      setMicrophonePermission("unavailable");
-      return Promise.resolve("unavailable");
-    }
+    if (microphonePermissionRef.current === "granted")
+      return Promise.resolve("granted");
     setMicrophonePermission("requesting-permission");
-    // Call synchronously in the AI/microphone click, before any await or effect.
-    let request;
-    try {
-      request = navigator.mediaDevices.getUserMedia({ audio: true });
-    } catch {
-      setMicrophonePermission("unavailable");
-      return Promise.resolve("unavailable");
-    }
-    const pending = Promise.resolve(request)
-      .then((stream) => {
-        stream.getTracks().forEach((track) => track.stop());
-        if (mountedRef.current) setMicrophonePermission("granted");
-        return "granted";
-      })
-      .catch(() => {
-        if (mountedRef.current) setMicrophonePermission("unavailable");
-        return "unavailable";
+    // Reuse this session's grant; capture/permission failures invalidate it below.
+    const pending = requestMicrophoneAccess()
+      .then((permission) => {
+        microphonePermissionRef.current = permission;
+        if (mountedRef.current) setMicrophonePermission(permission);
+        return permission;
       })
       .finally(() => {
         permissionRequestRef.current = null;
       });
     permissionRequestRef.current = pending;
     return pending;
-  }, [microphonePermission]);
+  }, []);
 
   const openJourneyAI = useCallback(
     (event) => {
@@ -167,10 +155,10 @@ export default function Layout() {
     openingRef.current += 1;
     setJourneyAIOpen(false);
   }, []);
-  const microphoneUnavailable = useCallback(
-    () => setMicrophonePermission("unavailable"),
-    [],
-  );
+  const microphoneUnavailable = useCallback((reason) => {
+    microphonePermissionRef.current = reason;
+    setMicrophonePermission(reason);
+  }, []);
   const requestingMicrophone = microphonePermission === "requesting-permission";
 
   useEffect(() => {
