@@ -1367,6 +1367,42 @@ main {
   font-size: 12px;
   line-height: 1.5;
 }
+.journey-ai-examples {
+  min-width: 0;
+  margin-top: 16px;
+}
+.journey-ai-examples > p {
+  margin-bottom: 8px;
+  color: var(--muted);
+  font-size: 12px;
+}
+.journey-ai-suggestions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+  padding: 4px;
+}
+.journey-ai-suggestion {
+  min-height: 44px;
+  padding: 9px 12px;
+  color: #b5c6d8;
+  font-size: 12px;
+  line-height: 1.5;
+  border: 1px solid rgba(139, 92, 246, 0.22);
+  border-radius: 16px;
+  background: linear-gradient(120deg, rgba(34, 211, 238, 0.04), rgba(139, 92, 246, 0.07));
+}
+.journey-ai-suggestion:hover:not([aria-disabled="true"]),
+.journey-ai-suggestion:focus-visible {
+  color: #d5f7fc;
+  border-color: rgba(34, 211, 238, 0.55);
+  background: rgba(34, 211, 238, 0.08);
+}
+.journey-ai-suggestion[aria-disabled="true"] {
+  opacity: 0.5;
+  cursor: wait;
+}
 .journey-ai-end {
   align-self: center;
   min-height: 44px;
@@ -1660,6 +1696,21 @@ main {
     margin-top: 16px;
     font-size: 12px;
   }
+  .journey-ai-suggestions {
+    flex-wrap: nowrap;
+    justify-content: flex-start;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    scrollbar-width: thin;
+    scrollbar-color: #435b78 transparent;
+  }
+  .journey-ai-suggestion {
+    flex: 0 0 auto;
+    max-width: 100%;
+  }
+  .journey-ai-suggestion:nth-child(n + 4) {
+    display: none;
+  }
   .journey-ai-recommendation {
     padding: 12px;
   }
@@ -1669,6 +1720,21 @@ main {
   .journey-ai-navigation > .button {
     padding: 9px 8px;
     font-size: 11px;
+  }
+}
+@media (max-height: 700px) {
+  .journey-ai-dialog {
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-width: thin;
+    scrollbar-color: #435b78 transparent;
+  }
+  .journey-ai-dialog[data-conversation="false"] .journey-ai-voice {
+    flex-shrink: 0;
+  }
+  .journey-ai-content {
+    flex: 1 0 auto;
+    overflow-y: visible;
   }
 }
 @media (prefers-reduced-motion: reduce) {
