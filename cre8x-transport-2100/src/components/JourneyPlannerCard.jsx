@@ -8,7 +8,7 @@ import {
   Circle,
 } from "lucide-react";
 import { journeyQuery } from "../data/journeys";
-import { locations } from "../data/network";
+import { journeyDestinations } from "../utils/journeyDestinations";
 import GlassSelect from "./GlassSelect";
 export default function JourneyPlannerCard() {
   const [from, setFrom] = useState("Maharagama");
@@ -38,7 +38,7 @@ export default function JourneyPlannerCard() {
             <GlassSelect
               aria-label="Starting location"
               className="location-select"
-              options={locations.map((location) => ({
+              options={journeyDestinations.map((location) => ({
                 label: location.name,
                 value: location.name,
               }))}
@@ -72,7 +72,7 @@ export default function JourneyPlannerCard() {
             <GlassSelect
               aria-label="Destination"
               className="location-select"
-              options={locations.map((location) => ({
+              options={journeyDestinations.map((location) => ({
                 label: location.name,
                 value: location.name,
               }))}
