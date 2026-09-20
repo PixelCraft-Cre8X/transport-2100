@@ -1317,6 +1317,13 @@ main {
   border-color: var(--cyan);
   background: radial-gradient(circle at 30% 20%, rgba(34, 211, 238, 0.45), rgba(139, 92, 246, 0.25) 70%);
 }
+.journey-ai-mic[data-state="paused"] {
+  animation: none;
+  color: #91a4b9;
+  border-color: #495b74;
+  background: #16243a;
+  box-shadow: none;
+}
 .journey-ai-mic[data-state="processing"],
 .journey-ai-mic[data-state="requesting-permission"] {
   cursor: wait;
@@ -1359,6 +1366,25 @@ main {
   color: #e2c9a5;
   font-size: 12px;
   line-height: 1.5;
+}
+.journey-ai-end {
+  align-self: center;
+  min-height: 44px;
+  margin: 4px auto 0;
+  padding: 10px 14px;
+  color: #a6bacd;
+  font-size: 12px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+}
+.journey-ai-end:hover:not(:disabled) {
+  color: var(--white);
+  background: rgba(148, 163, 184, 0.08);
+}
+.journey-ai-end:disabled {
+  opacity: 0.4;
+  cursor: default;
 }
 .journey-ai-content {
   flex: 1;
