@@ -341,7 +341,7 @@ export default function Tracking() {
               aria-controls="tk-route-timeline"
               onClick={() => setTimelineOpen((open) => !open)}
             >
-              <span>Journey progress</span>
+              <span>See more details</span>
               <ChevronDown size={18} aria-hidden="true" />
             </button>
           )}
