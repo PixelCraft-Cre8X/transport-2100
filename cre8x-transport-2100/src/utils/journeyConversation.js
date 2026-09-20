@@ -168,6 +168,8 @@ function journeyAction(request, conversation) {
     return "accept";
   if (/^(?:read|read out|show)(?: me)?(?: the| my)? directions$/.test(phrase))
     return "directions";
+  if (/^(?:view|show)(?: me)?(?: the| my)? journey$/.test(phrase))
+    return "view";
   if (/^cancel(?: this| the| my)? (?:journey|trip|route)$/.test(phrase))
     return "cancel";
   if (
@@ -197,7 +199,7 @@ function selectJourney(conversation, start) {
   const turn = withAnswer(
     selected,
     start
-      ? "Journey started. I'll guide you along the way."
+      ? "Opening booking for your journey."
       : `Great. I've selected this journey to ${journey.to.name}. Would you like me to start live guidance?`,
   );
   if (start) {
@@ -207,7 +209,7 @@ function selectJourney(conversation, start) {
       journey.route.id,
       journey.intent.walking,
     );
-    turn.navigation = `/tracking?${query}`;
+    turn.navigation = `/journey?${query}&booking=1`;
   }
   return turn;
 }
@@ -221,6 +223,24 @@ export function handleJourneyRequest(
   const action = journeyAction(request, conversation);
   if (action === "accept" || action === "start")
     return selectJourney(conversation, action === "start");
+  if (action === "view") {
+    const journey = conversation.selectedJourney ?? conversation.lastResult;
+    if (!journey)
+      return withAnswer(
+        conversation,
+        "Let's find a route first. Where would you like to go?",
+      );
+    const query = journeyQuery(
+      journey.from.name,
+      journey.to.name,
+      journey.route.id,
+      journey.intent.walking,
+    );
+    return {
+      ...withAnswer(conversation, `Opening your journey to ${journey.to.name}.`),
+      navigation: `/journey?${query}`,
+    };
+  }
   if (action === "confirm")
     return withAnswer(
       conversation,
