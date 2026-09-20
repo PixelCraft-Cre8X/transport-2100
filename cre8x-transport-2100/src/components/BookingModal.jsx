@@ -31,7 +31,7 @@ import {
 import GlassSelect from "./GlassSelect";
 import Modal from "./Modal";
 import Ticket from "./Ticket";
-import { createBooking, saveBooking } from "../utils/booking";
+import { createBooking, rideFares, saveBooking } from "../utils/booking";
 import { ModeIcon } from "./UI";
 import "./BookingModal.css";
 
@@ -152,11 +152,10 @@ function BookingDialog({
   const cabin = seatRows(activeRide.mode);
   const seatOrder = cabin.flat(2);
   const chosen = seats[activeRide.start];
-  // The first ride sets how many seats are needed; every other ride matches it.
-  const passengers = seats[rides[0].start].length;
-  const limit = rideIndex === 0 ? SEAT_LIMIT : passengers;
+
   const shortName = (ride) => ride.name.split(" · ")[0];
-  const fare = route.cost * passengers;
+  const fares = rideFares(rides, route, seats);
+  const fare = fares.reduce((sum, r) => sum + r.amount, 0);
   const total = fare + SERVICE_FEE;
 
   const passengerErrors = validatePassenger(form);
@@ -207,26 +206,15 @@ function BookingDialog({
   const plural = (n) => `${n} seat${n === 1 ? "" : "s"}`;
 
   const setRideSeats = (list) =>
-    setSeats((current) => {
-      const next = { ...current, [activeRide.start]: list };
-      // Fewer seats on the first ride means fewer on the rest.
-      if (rideIndex === 0) {
-        rides.slice(1).forEach((ride) => {
-          next[ride.start] = next[ride.start].slice(0, list.length);
-        });
-      }
-      return next;
-    });
+    setSeats((current) => ({ ...current, [activeRide.start]: list }));
 
   const toggleSeat = (seat) => {
     setSeatMessage("");
     if (chosen.includes(seat)) {
       setRideSeats(chosen.filter((s) => s !== seat));
-    } else if (chosen.length >= limit) {
+    } else if (chosen.length >= SEAT_LIMIT) {
       setSeatMessage(
-        rideIndex === 0
-          ? `You can select up to ${SEAT_LIMIT} seats.`
-          : `Your first ride has ${plural(passengers)}, so this one needs ${passengers} too.`,
+        `You can select up to ${SEAT_LIMIT} seats on the ${shortName(activeRide)}.`,
       );
     } else {
       setRideSeats(
@@ -240,12 +228,9 @@ function BookingDialog({
   // Seats are chosen one ride at a time: each Next moves to the following
   // vehicle, and the last one continues to payment.
   const nextSeat = () => {
-    const needed = rideIndex === 0 ? 1 : passengers;
-    if (chosen.length < needed) {
+    if (!chosen.length) {
       setSeatMessage(
-        rideIndex === 0
-          ? "Choose at least one seat to continue."
-          : `Choose ${plural(passengers)} on the ${shortName(activeRide)} to match your first ride.`,
+        `Choose at least one seat on the ${shortName(activeRide)}.`,
       );
       return;
     }
@@ -564,9 +549,7 @@ function BookingDialog({
                         {chosen.length ? chosen.join(", ") : "–"}
                       </output>
                       <small>
-                        {rideIndex === 0
-                          ? `${chosen.length} of up to ${SEAT_LIMIT}`
-                          : `${chosen.length} of ${passengers} to match ride 1`}
+                        {chosen.length} of up to {SEAT_LIMIT}
                       </small>
                     </div>
                   </div>
@@ -708,10 +691,15 @@ function BookingDialog({
                 )}
 
                 <dl className="bk-fare">
-                  <div>
-                    <dt>Fare ({plural(passengers)})</dt>
-                    <dd>{formatFare(fare)}</dd>
-                  </div>
+                  {fares.map(({ ride, seats: count, amount }) => (
+                    <div key={ride.start}>
+                      <dt>
+                        {fares.length > 1 ? `${shortName(ride)} · ` : "Fare · "}
+                        {plural(count)}
+                      </dt>
+                      <dd>{formatFare(amount)}</dd>
+                    </div>
+                  ))}
                   <div>
                     <dt>Service fee</dt>
                     <dd>{formatFare(SERVICE_FEE)}</dd>
