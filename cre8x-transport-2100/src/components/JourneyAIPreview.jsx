@@ -2,7 +2,10 @@ import { useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { LoaderCircle, Mic, Send, Sparkles, Volume2, X } from "lucide-react";
 import { journeyQuery, readJourney } from "../data/journeys";
-import { createJourneyAIResponse } from "../utils/journeyAI";
+import {
+  createJourneyAIResponse,
+  getJourneyAIContext,
+} from "../utils/journeyAI";
 import { microphoneNotice } from "../utils/microphone";
 import {
   createVoiceSession,
@@ -48,6 +51,12 @@ const selectedExamples = [
   "Read directions",
   "Change route",
   "Cancel journey",
+];
+const trackingExamples = [
+  "How long is left?",
+  "What is my next stop?",
+  "Read directions",
+  "Change route",
 ];
 
 export default function JourneyAIPreview({ open, ...props }) {
@@ -96,6 +105,12 @@ function JourneyAIDialog({
     walking: params.get("walking") ?? currentJourney.walking,
     accepted: Boolean(currentJourney.selected),
   };
+  const journeyAIContext = getJourneyAIContext({
+    pathname,
+    from: currentJourney.from,
+    to: currentJourney.to,
+    route: currentJourney.selected,
+  });
   const [conversation, setConversation] = useState(() =>
     createJourneyConversation(context),
   );
@@ -108,7 +123,11 @@ function JourneyAIDialog({
       ? "recommended"
       : "planning";
   const examples =
-    phase === "selected"
+    journeyAIContext.tracking
+      ? trackingExamples
+      : journeyAIContext.hasJourney
+        ? followUpExamples
+        : phase === "selected"
       ? selectedExamples
       : phase === "recommended"
         ? followUpExamples
@@ -171,6 +190,7 @@ function JourneyAIDialog({
       Utterance: window.SpeechSynthesisUtterance,
       requestMicrophone: onRequestMicrophone,
       onMicrophoneUnavailable,
+      greeting: journeyAIContext.greeting,
       onState: setVoice,
       onTranscript(request, source) {
         const message = {
@@ -213,6 +233,7 @@ function JourneyAIDialog({
     };
   }, [
     Recognition,
+    journeyAIContext.greeting,
     openingPermission,
     onRequestMicrophone,
     onMicrophoneUnavailable,
@@ -310,11 +331,13 @@ function JourneyAIDialog({
         <div className="journey-ai-body">
           <div className="journey-ai-voice">
             <p className="journey-ai-prompt">
-              {conversation.accepted
-                ? "Your journey is selected."
-                : recommendation
+              {journeyAIContext.tracking
+                ? "How can I help on your journey?"
+                : journeyAIContext.routeReady || recommendation
                   ? "Your journey is ready."
-                  : "Where would you like to go?"}
+                  : journeyAIContext.hasJourney || conversation.accepted
+                    ? "How can I help with your journey?"
+                    : "Where would you like to go?"}
             </p>
             <button
               ref={microphoneRef}
