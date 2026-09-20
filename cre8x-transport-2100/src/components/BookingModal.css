@@ -198,6 +198,12 @@
   font-size: 1rem;
 }
 
+.bk-field input[type="date"],
+.bk-field input[type="time"] {
+  color-scheme: dark;
+  min-width: 0;
+}
+
 .bk-field input::placeholder {
   color: #6f8398;
 }
@@ -847,6 +853,13 @@
     grid-template-columns: 300px minmax(0, 1fr);
     gap: 40px;
     justify-content: center;
+  }
+}
+
+/* Very narrow phones: date and time stack so the date isn't clipped. */
+@media (max-width: 379px) {
+  .bk-fields .bk-pair {
+    grid-template-columns: 1fr;
   }
 }
 
