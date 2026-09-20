@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { NavLink, Outlet, useLocation } from "react-router-dom";
+import { NavLink, useLocation } from "react-router-dom";
 import {
   Compass,
   Globe2,
@@ -12,6 +12,7 @@ import {
 import logoImage from "../assets/logo.png";
 import IntroScreen from "./IntroScreen";
 import JourneyAIPreview from "./JourneyAIPreview";
+import PageTransition from "./PageTransition";
 import { requestMicrophoneAccess } from "../utils/microphone";
 
 const links = [
@@ -172,7 +173,7 @@ export default function Layout() {
   useEffect(() => {
     window.scrollTo(0, 0);
     document.title = `${pathname === "/tracking" ? "Live tracking" : pathname === "/journey" ? "Your journey" : "Discover"} · moveone`;
-  }, [pathname]);
+  }, [pathname, search]);
 
   useEffect(() => {
     if (!showIntro) {
@@ -219,7 +220,7 @@ export default function Layout() {
         />
 
         <main id="main-content" tabIndex={-1}>
-          <Outlet context={{ onOpenAI: openJourneyAI }} />
+          <PageTransition context={{ onOpenAI: openJourneyAI }} />
         </main>
 
         <footer className="page-footer">

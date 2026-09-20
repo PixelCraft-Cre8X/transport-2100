@@ -1,0 +1,53 @@
+.page-transition {
+  width: 100%;
+}
+
+.page-transition-enter {
+  animation: pageTransitionEnter 200ms ease-out both;
+}
+
+.page-transition-exit {
+  animation: pageTransitionExit 140ms ease-out both;
+  pointer-events: none;
+}
+
+@keyframes pageTransitionEnter {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes pageTransitionExit {
+  from {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  to {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+}
+
+@media (max-width: 767px) {
+  .page-transition-enter {
+    animation-duration: 180ms;
+  }
+
+  .page-transition-exit {
+    animation-duration: 120ms;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .page-transition-enter,
+  .page-transition-exit {
+    animation: none;
+  }
+}

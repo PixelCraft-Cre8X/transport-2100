@@ -620,6 +620,11 @@
     padding: 31px 20px 34px;
   }
 
+  .quick-destinations .eyebrow,
+  .transport-section .eyebrow {
+    font-size: 12px;
+  }
+
   .quick-heading {
     align-items: flex-start;
     margin-bottom: 15px;
