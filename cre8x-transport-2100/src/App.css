@@ -554,6 +554,7 @@
 
   .hero-copy {
     padding: 0;
+    text-align: center;
   }
 
   .hero-copy h1 {
@@ -563,6 +564,10 @@
 
   .hero-copy > p {
     font-size: 14px;
+  }
+
+  .planner-footnote {
+    text-align: center;
   }
 
   .hero-tags {
