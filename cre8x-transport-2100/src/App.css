@@ -1375,3 +1375,56 @@
   border-color: rgba(196, 181, 253, 0.55);
   color: #f0eaff;
 }
+
+.install-app-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 32px;
+  padding: 0 10px;
+  color: #bdeff6;
+  border: 1px solid rgba(34, 211, 238, 0.26);
+  border-radius: 10px;
+  background: rgba(34, 211, 238, 0.08);
+  font-size: 11px;
+  white-space: nowrap;
+  transition:
+    color 0.2s ease,
+    border-color 0.2s ease,
+    background 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.install-app-button:hover,
+.install-app-button:focus-visible {
+  color: var(--white);
+  border-color: rgba(34, 211, 238, 0.52);
+  background: rgba(34, 211, 238, 0.14);
+  box-shadow: 0 0 16px rgba(34, 211, 238, 0.12);
+  outline: none;
+}
+
+@media (max-width: 767px) {
+  .header-meta {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .install-app-button {
+    width: 35px;
+    height: 35px;
+    justify-content: center;
+    padding: 0;
+    border-radius: 50%;
+  }
+
+  .install-app-button span {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+}

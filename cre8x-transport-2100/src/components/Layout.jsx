@@ -2,6 +2,7 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react
 import { NavLink, useLocation } from "react-router-dom";
 import {
   Compass,
+  Download,
   Globe2,
   Map,
   Radio,
@@ -75,7 +76,14 @@ function Navigation({
   );
 }
 
-function Header({ search, pathname, onOpenAI, requestingMicrophone }) {
+function Header({
+  search,
+  pathname,
+  onOpenAI,
+  requestingMicrophone,
+  canInstall,
+  onInstall,
+}) {
   return (
     <header
       className={`site-header glass-nav${
@@ -101,6 +109,17 @@ function Header({ search, pathname, onOpenAI, requestingMicrophone }) {
           <span className="language-meta">
             <Globe2 size={15} /> EN
           </span>
+          {canInstall && (
+            <button
+              className="install-app-button"
+              type="button"
+              onClick={onInstall}
+              aria-label="Install MoveOne app"
+            >
+              <Download size={15} />
+              <span>Install app</span>
+            </button>
+          )}
           <div className="avatar" aria-label="Demo traveler profile">
             <img src={profileImage} alt="" />
           </div>
@@ -120,6 +139,7 @@ function Header({ search, pathname, onOpenAI, requestingMicrophone }) {
 export default function Layout() {
   const { pathname, search } = useLocation();
   const [showIntro, setShowIntro] = useState(true);
+  const [installPrompt, setInstallPrompt] = useState(null);
   const [journeyAIOpen, setJourneyAIOpen] = useState(false);
   const [microphonePermission, setMicrophonePermission] = useState("unknown");
   const microphonePermissionRef = useRef("unknown");
@@ -135,6 +155,27 @@ export default function Layout() {
       openingRef.current += 1;
     };
   }, []);
+
+  useEffect(() => {
+    const handleInstallPrompt = (event) => {
+      event.preventDefault();
+      setInstallPrompt(event);
+    };
+    const handleInstalled = () => setInstallPrompt(null);
+
+    window.addEventListener("beforeinstallprompt", handleInstallPrompt);
+    window.addEventListener("appinstalled", handleInstalled);
+    return () => {
+      window.removeEventListener("beforeinstallprompt", handleInstallPrompt);
+      window.removeEventListener("appinstalled", handleInstalled);
+    };
+  }, []);
+
+  const installApp = useCallback(async () => {
+    if (!installPrompt) return;
+    await installPrompt.prompt();
+    setInstallPrompt(null);
+  }, [installPrompt]);
 
   const requestMicrophone = useCallback(() => {
     if (permissionRequestRef.current) return permissionRequestRef.current;
@@ -238,6 +279,8 @@ export default function Layout() {
           pathname={pathname}
           onOpenAI={openJourneyAI}
           requestingMicrophone={requestingMicrophone}
+          canInstall={Boolean(installPrompt)}
+          onInstall={installApp}
         />
 
         <main id="main-content" tabIndex={-1}>
