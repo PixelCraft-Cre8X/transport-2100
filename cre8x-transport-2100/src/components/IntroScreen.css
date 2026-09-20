@@ -66,6 +66,9 @@
   width: 100%;
   height: auto;
   object-fit: contain;
+  filter:
+    drop-shadow(0 0 18px rgba(34, 211, 238, 0.2))
+    drop-shadow(0 0 30px rgba(139, 92, 246, 0.12));
   opacity: 0;
   transform: translateY(8px) scale(0.86);
   animation: introLogoReveal 0.5s cubic-bezier(0.22, 0.78, 0.28, 1) 0.15s
@@ -158,6 +161,30 @@
 @media (min-width: 768px) {
   .intro-logo {
     width: clamp(900px, 34vw, 540px);
+  }
+}
+
+@media (max-width: 767px) {
+  .intro-logo {
+    width: clamp(450px, 78vw, 420px);
+    max-width: calc(100vw - 32px);
+  }
+
+  .intro-logo::before {
+    inset: -46% -28%;
+    background: radial-gradient(
+      ellipse,
+      rgba(34, 211, 238, 0.28),
+      rgba(139, 92, 246, 0.14) 45%,
+      transparent 72%
+    );
+    filter: blur(20px);
+  }
+
+  .intro-logo-image {
+    filter:
+      drop-shadow(0 0 22px rgba(34, 211, 238, 0.3))
+      drop-shadow(0 0 36px rgba(139, 92, 246, 0.18));
   }
 }
 
