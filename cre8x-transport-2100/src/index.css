@@ -631,6 +631,10 @@ main {
   scrollbar-color: rgba(34, 211, 238, 0.55) rgba(7, 17, 31, 0.45);
 }
 
+.location-select .glass-select-menu {
+  max-height: 134px;
+}
+
 .glass-select-menu::-webkit-scrollbar {
   width: 7px;
 }
