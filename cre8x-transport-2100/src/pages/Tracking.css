@@ -816,6 +816,14 @@
   padding-bottom: 0;
 }
 
+.tk-timeline-toggle {
+  display: none;
+}
+
+.tk-route-timeline {
+  display: block;
+}
+
 /* The destination row only needs its title and duration. */
 .tk-panel .route-timeline li:last-child p,
 .tk-panel .route-timeline li:last-child .timeline-status {
@@ -850,6 +858,40 @@
 .tk-panel .timeline-status {
   margin-top: 4px;
   font-size: var(--text-xs);
+}
+
+@media (max-width: 899px) {
+  .tk-timeline-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    padding: 12px 0;
+    border: 0;
+    border-top: 1px solid var(--tk-line);
+    background: transparent;
+    color: #cfdbe7;
+    font: inherit;
+    font-size: var(--text-sm);
+    text-align: left;
+    cursor: pointer;
+  }
+
+  .tk-timeline-toggle svg {
+    transition: transform 0.2s ease;
+  }
+
+  .tk-timeline-toggle[aria-expanded="true"] svg {
+    transform: rotate(180deg);
+  }
+
+  .tk-route-timeline {
+    display: none;
+  }
+
+  .tk-route-timeline.is-open {
+    display: block;
+  }
 }
 
 .tk-actions {
