@@ -2,7 +2,7 @@ import { microphoneFailure, microphoneNotice } from "./microphone.js";
 import { ensureSpeechVoicesReady, voiceDebug } from "./speechSynthesis.js";
 
 export const voiceGreeting =
-  "Hi, I’m Journey AI. Where would you like to go? You can tell me a destination or ask for the fastest, cheapest, or most comfortable journey.";
+  " Hi, I’m Journey AI. Where would you like to go? You can tell me a destination or ask for the fastest, cheapest, or most comfortable journey.";
 export const recognitionUnavailable =
   "Voice recognition is not supported in this browser. You can still type your request.";
 
