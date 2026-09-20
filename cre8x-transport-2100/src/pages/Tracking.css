@@ -122,11 +122,12 @@
   letter-spacing: 0.35em;
 }
 
-.tk-traffic {
+.tk-traffic-bus {
   fill: none;
-  stroke: #34d399;
-  stroke-opacity: 0.16;
-  stroke-width: 16;
+  stroke: #facc15;
+  stroke-opacity: 1;
+  stroke-width: 4px;
+  stroke-dasharray: 18 82;
   stroke-linecap: round;
   stroke-linejoin: round;
 }

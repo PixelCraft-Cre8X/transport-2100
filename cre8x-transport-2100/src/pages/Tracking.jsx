@@ -3,7 +3,6 @@ import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import {
   ArrowLeft,
   ArrowRight,
-  Bell,
   Ban,
   Clock3,
   MapPin,
@@ -179,9 +178,6 @@ export default function Tracking() {
           <h1>On your way to {to.name}.</h1>
         </div>
         <div className="tk-header-actions">
-          <button className="icon-button" aria-label="Journey notifications">
-            <Bell size={18} />
-          </button>
           <span className="tk-live">
             <span className="status-dot" />{" "}
             {arrived ? "Arrived" : "Live tracking"}
