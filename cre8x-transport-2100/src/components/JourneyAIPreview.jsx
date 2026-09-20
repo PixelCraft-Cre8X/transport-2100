@@ -79,7 +79,7 @@ function JourneyAIDialog({
   );
   const [openingPermission] = useState(permission);
   const [voice, setVoice] = useState(() => initialVoiceState(permission));
-  const { status, notice, conversationActive } = voice;
+  const { status, notice, conversationActive, greetingRetryAvailable } = voice;
   const [text, setText] = useState("");
   const [messages, setMessages] = useState([]);
   const [result, setResult] = useState(null);
@@ -385,6 +385,15 @@ function JourneyAIDialog({
                 {voiceNotice}
               </p>
             )}
+            {greetingRetryAvailable && canSpeak && (
+              <button
+                className="journey-ai-replay journey-ai-enable-voice"
+                type="button"
+                onClick={() => voiceSessionRef.current?.retryGreeting()}
+              >
+                <Volume2 size={16} aria-hidden="true" /> Tap to hear Journey AI
+              </button>
+            )}
             <button
               className="journey-ai-end"
               type="button"
@@ -497,7 +506,7 @@ function JourneyAIDialog({
                 </button>
               )}
               <p className="journey-ai-network">
-                Simulated services and fares for Sri Lanka, 2100.
+               
               </p>
             </section>
           )}

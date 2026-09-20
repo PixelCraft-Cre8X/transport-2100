@@ -1,4 +1,5 @@
 import { microphoneFailure, microphoneNotice } from "./microphone.js";
+import { ensureSpeechVoicesReady, voiceDebug } from "./speechSynthesis.js";
 
 export const voiceGreeting =
   "Hi, I’m Journey AI. Where would you like to go? You can tell me a destination or ask for the fastest, cheapest, or most comfortable journey.";
@@ -10,6 +11,7 @@ export function initialVoiceState(permission) {
     conversationActive: false,
     status: permission === "granted" ? "idle" : "voice-error",
     notice: microphoneNotice(permission),
+    greetingRetryAvailable: false,
   };
 }
 
@@ -38,12 +40,15 @@ export function createVoiceSession({
   let workTimer = null;
   let drainTimer = null;
   let pendingAction = null;
+  let cancelVoiceWait = null;
+  let speechStartTimer = null;
+  let greetingRetryAvailable = false;
   const stopFailure =
     "The microphone did not stop correctly. Close Journey AI and try again, or type below.";
 
   function emit(status, notice = "") {
     if (disposed) return;
-    state = { conversationActive: active, status, notice };
+    state = { conversationActive: active, status, notice, greetingRetryAvailable };
     onState(state);
   }
 
@@ -62,6 +67,7 @@ export function createVoiceSession({
     timers.clearTimeout(drainTimer);
     drainTimer = null;
     const engine = turn.engine;
+    engine.onstart = null;
     engine.onresult = engine.onerror = engine.onnomatch = engine.onend = null;
     if (disposed) return;
     const next = pendingAction;
@@ -92,10 +98,15 @@ export function createVoiceSession({
     revision += 1;
     timers.clearTimeout(workTimer);
     workTimer = null;
+    timers.clearTimeout(speechStartTimer);
+    speechStartTimer = null;
+    cancelVoiceWait?.();
+    cancelVoiceWait = null;
+    greetingRetryAvailable = false;
     pendingAction = null;
     stopRecognition();
     if (utterance) {
-      utterance.onend = utterance.onerror = null;
+      utterance.onstart = utterance.onend = utterance.onerror = null;
       utterance = null;
       synthesis?.cancel();
     }
@@ -126,10 +137,14 @@ export function createVoiceSession({
     emit("voice-error", message);
   }
 
-  function pause(message = "Tap the microphone to continue.") {
+  function pause(
+    message = "Tap the microphone to continue.",
+    retryGreeting = false,
+  ) {
     if (disposed) return;
     paused = active;
     cancelWork();
+    greetingRetryAvailable = retryGreeting;
     emit(active ? "paused" : "idle", message);
   }
 
@@ -206,6 +221,10 @@ export function createVoiceSession({
         engine.lang = "en-US";
         engine.continuous = false;
         engine.interimResults = false;
+        engine.onstart = () => {
+          if (recognition === turn && !turn.cancelled)
+            voiceDebug("recognition started");
+        };
         engine.onresult = (event) => {
           if (
             disposed ||
@@ -263,9 +282,10 @@ export function createVoiceSession({
     });
   }
 
-  function speak(message, kind = "speaking") {
+  function speak(message, kind = "speaking", { directGesture = false } = {}) {
     if (disposed) return;
     cancelWork();
+    const version = revision;
     whenRecognitionStops(() => {
       if (!synthesis || !Utterance) {
         pause(
@@ -273,33 +293,66 @@ export function createVoiceSession({
         );
         return;
       }
-      try {
-        synthesis.cancel();
-        // Keep the browser's default voice, matching live map guidance.
-        const speech = new Utterance(message);
-        const version = revision;
-        utterance = speech;
-        speech.onend = () => {
-          if (disposed || utterance !== speech || version !== revision) return;
-          utterance = null;
-          speech.onend = speech.onerror = null;
-          emit(paused ? "paused" : active ? "idle" : "result");
-          // Restart only after speech ends, with a short gap for the audio device.
-          if (active && !paused) later(listen, 200);
-        };
-        speech.onerror = () => {
-          if (utterance === speech && version === revision)
-            pause(
-              "Spoken playback is unavailable. Tap the microphone or type below.",
-            );
-        };
-        emit(kind);
-        synthesis.speak(speech);
-      } catch {
+      function playbackFailed() {
+        if (disposed || version !== revision) return;
         pause(
-          "Spoken playback is unavailable. Tap the microphone or type below.",
+          kind === "greeting"
+            ? "The greeting couldn’t play. Tap to hear Journey AI, or use the microphone or text below."
+            : "Spoken playback is unavailable. Tap the microphone or type below.",
+          kind === "greeting",
         );
       }
+      function play() {
+        if (disposed || version !== revision) return;
+        cancelVoiceWait = null;
+        try {
+          synthesis.cancel();
+          // Let the browser select its English voice; no named voice is required.
+          const speech = new Utterance(message);
+          speech.lang = "en-US";
+          let started = false;
+          utterance = speech;
+          speech.onstart = () => {
+            if (disposed || utterance !== speech || version !== revision) return;
+            started = true;
+            timers.clearTimeout(speechStartTimer);
+            speechStartTimer = null;
+            voiceDebug("utterance onstart", kind);
+          };
+          speech.onend = () => {
+            if (disposed || utterance !== speech || version !== revision) return;
+            voiceDebug("utterance onend", kind);
+            // A silent first-open failure must not masquerade as a heard greeting.
+            if (kind === "greeting" && !started) {
+              playbackFailed();
+              return;
+            }
+            utterance = null;
+            speech.onstart = speech.onend = speech.onerror = null;
+            emit(paused ? "paused" : active ? "idle" : "result");
+            // Restart only after speech ends, with a short gap for the audio device.
+            if (active && !paused) later(listen, 200);
+          };
+          speech.onerror = (event) => {
+            if (utterance !== speech || version !== revision) return;
+            voiceDebug("utterance onerror", event?.error);
+            playbackFailed();
+          };
+          if (kind === "greeting") {
+            speechStartTimer = timers.setTimeout(() => {
+              if (utterance === speech && !started) playbackFailed();
+            }, 2000);
+            voiceDebug("greeting speak called");
+          }
+          synthesis.speak(speech);
+        } catch {
+          playbackFailed();
+        }
+      }
+      emit(kind);
+      // The recovery button speaks in its click, without waiting away the gesture.
+      if (directGesture) play();
+      else cancelVoiceWait = ensureSpeechVoicesReady(synthesis, play, { timers });
     });
   }
 
@@ -362,8 +415,20 @@ export function createVoiceSession({
   return {
     getState: () => ({ ...state }),
     open() {
-      if (!disposed && permission === "granted")
-        later(() => start({ greet: true }));
+      if (disposed || permission !== "granted") return;
+      const version = revision;
+      // Allow StrictMode cleanup without deferring initial speech to a timer.
+      // Layout has already primed the engine synchronously in the opening click.
+      timers.queueMicrotask(() => {
+        if (!disposed && revision === version) start({ greet: true });
+      });
+    },
+    retryGreeting() {
+      if (disposed || !greetingRetryAvailable || permission !== "granted") return;
+      active = true;
+      paused = false;
+      silenceCount = 0;
+      speak(greeting, "greeting", { directGesture: true });
     },
     toggle() {
       if ((active && !paused) || utterance) pause();
@@ -384,7 +449,12 @@ export function createVoiceSession({
     dispose() {
       disposed = true;
       active = false;
-      state = { ...state, conversationActive: false, status: "idle" };
+      state = {
+        ...state,
+        conversationActive: false,
+        status: "idle",
+        greetingRetryAvailable: false,
+      };
       cancelWork();
       timers.clearTimeout(drainTimer);
       if (recognition) {

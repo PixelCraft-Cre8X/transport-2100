@@ -180,11 +180,11 @@ export function getJourneyAIContext({ pathname, from, to, route }) {
     tracking,
     routeReady,
     greeting: tracking
-      ? `Hi, I’m Journey AI. I’m here to help with your current journey to ${to.name}.`
+      ? ` Hi, I’m Journey AI. I’m here to help with your current journey to ${to.name}.`
       : routeReady
-        ? `Hi, I’m Journey AI. Your route to ${to.name} is ready. You can ask me to make it faster, cheaper, simpler, or start the journey.`
+        ? ` Hi, I’m Journey AI. Your route to ${to.name} is ready. You can ask me to make it faster, cheaper, simpler, or start the journey.`
         : hasJourney
-          ? `Hi, I’m Journey AI. I can help with your journey from ${from.name} to ${to.name}. What would you like to know or change?`
-          : "Hi, I’m Journey AI. Where would you like to go?",
+          ? ` Hi, I’m Journey AI. I can help with your journey from ${from.name} to ${to.name}. What would you like to know or change?`
+          : " Hi, I’m Journey AI. Where would you like to go?",
   };
 }
