@@ -113,6 +113,99 @@
   display: none;
 }
 
+/* Booked and cancelled notices */
+
+.jm-banner {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin: 0 0 22px;
+  padding: 14px 16px;
+  border: 1px solid rgba(34, 211, 238, 0.35);
+  border-radius: 14px;
+  background: rgba(34, 211, 238, 0.07);
+  color: #cfdbe7;
+  font-size: var(--text-sm);
+}
+
+.jm-banner > svg {
+  flex: none;
+  color: var(--jm-cyan);
+}
+
+.jm-banner p {
+  flex: 1;
+  margin: 0;
+}
+
+.jm-banner p strong {
+  display: block;
+  margin-bottom: 2px;
+  color: #fff;
+  font-weight: 600;
+}
+
+.jm-banner button {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 14px;
+  border: 1px solid rgba(34, 211, 238, 0.45);
+  border-radius: 10px;
+  background: none;
+  color: #e6eef6;
+  font-size: var(--text-sm);
+}
+
+.jm-banner button:hover {
+  border-color: var(--cyan);
+}
+
+.jm-banner button:focus-visible {
+  outline: 2px solid var(--cyan);
+  outline-offset: 2px;
+}
+
+.jm-banner.cancelled {
+  border-color: rgba(251, 113, 133, 0.4);
+  background: rgba(251, 113, 133, 0.08);
+}
+
+.jm-banner.cancelled span {
+  flex: 1;
+}
+
+.jm-banner.cancelled button {
+  padding: 6px;
+  border: 0;
+}
+
+.jm-route.locked {
+  opacity: 0.45;
+}
+
+.jm-route.locked .jm-route-pick {
+  cursor: not-allowed;
+}
+
+@media (max-width: 1023px) {
+  .jm-banner {
+    order: 2;
+  }
+}
+
+@media (max-width: 559px) {
+  .jm-banner.booked {
+    flex-wrap: wrap;
+  }
+
+  .jm-banner.booked button {
+    flex: 1 1 100%;
+    justify-content: center;
+  }
+}
+
 .jm-visually-hidden {
   position: absolute;
   width: 1px;
@@ -327,8 +420,7 @@
   border: 1px solid rgba(56, 130, 170, 0.28);
   border-radius: 16px;
   background:
-    radial-gradient(120% 90% at 25% 30%, #08192c 0%, #040b15 62%),
-    #040b15;
+    radial-gradient(120% 90% at 25% 30%, #08192c 0%, #040b15 62%), #040b15;
 }
 
 .jm-map::before,

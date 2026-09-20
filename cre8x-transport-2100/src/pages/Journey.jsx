@@ -1,23 +1,35 @@
 import { useEffect, useRef, useState } from "react";
-import { Link, useSearchParams } from "react-router-dom";
+import {
+  Link,
+  useLocation,
+  useNavigate,
+  useSearchParams,
+} from "react-router-dom";
 import {
   ArrowLeft,
   ArrowRight,
   ArrowUpRight,
   CalendarDays,
   Heart,
+  Lock,
   MapPin,
+  Ticket as TicketIcon,
+  X,
 } from "lucide-react";
 import {
   readJourney,
   journeyQuery,
   formatFare,
   clockTime,
+  departureDay,
+  formatDay,
   withStartTimes,
 } from "../data/journeys";
 import { ModeIcon } from "../components/UI";
 import JourneyMap from "../components/JourneyMap";
 import BookingModal from "../components/BookingModal";
+import TicketModal from "../components/TicketModal";
+import { useBooking } from "../utils/booking";
 import DestinationArt from "../components/DestinationArt";
 import "./Journey.css";
 
@@ -25,13 +37,7 @@ import "./Journey.css";
 const HIDDEN_STYLES = ["recommended"];
 const TOP_STYLE = "healthy";
 
-function departureDate() {
-  const day = new Date();
-  day.setDate(day.getDate() + 1);
-  const weekday = day.toLocaleDateString("en-US", { weekday: "short" });
-  const month = day.toLocaleDateString("en-US", { month: "short" });
-  return `${weekday}, ${day.getDate()} ${month}`;
-}
+const departureDate = () => formatDay(departureDay());
 
 function Metric({ value, unit, label, shortLabel }) {
   return (
@@ -60,7 +66,14 @@ function transferLabel(count) {
 
 export default function Journey() {
   const [params, setParams] = useSearchParams();
-  const journey = readJourney(params);
+  const booking = useBooking();
+  const location = useLocation();
+  const navigate = useNavigate();
+  const locked = Boolean(booking);
+  // Once paid, the route is fixed to what was booked whatever the URL says.
+  const journey = readJourney(
+    booking ? new URLSearchParams(booking.query) : params,
+  );
   const { from, to, walking } = journey;
   const routes = journey.options
     .filter((o) => !HIDDEN_STYLES.includes(o.id))
@@ -73,9 +86,22 @@ export default function Journey() {
   const [visibleIndex, setVisibleIndex] = useState(0);
   const [saved, setSaved] = useState(false);
   const [bookingOpen, setBookingOpen] = useState(false);
+  const [ticketOpen, setTicketOpen] = useState(false);
+  const [cancelled, setCancelled] = useState(location.state?.cancelled ?? null);
+
+  // The "cancelled" notice arrives through navigation state; clear it from
+  // history so a refresh doesn't bring it back.
+  useEffect(() => {
+    if (location.state?.cancelled) {
+      navigate(`${location.pathname}${location.search}`, {
+        replace: true,
+        state: null,
+      });
+    }
+  }, [location, navigate]);
 
   const choose = (style) =>
-    setParams(journeyQuery(from.name, to.name, style, walking));
+    !locked && setParams(journeyQuery(from.name, to.name, style, walking));
 
   // On phones the routes sit in a sideways carousel. Scroll it (never the page)
   // so that a card is centred.
@@ -138,6 +164,34 @@ export default function Journey() {
             </span>
           </div>
 
+          {cancelled && (
+            <p className="jm-banner cancelled" role="status">
+              <span>
+                Journey {cancelled} was cancelled. No refund was issued.
+              </span>
+              <button
+                type="button"
+                aria-label="Dismiss"
+                onClick={() => setCancelled(null)}
+              >
+                <X size={18} />
+              </button>
+            </p>
+          )}
+          {booking && (
+            <div className="jm-banner booked">
+              <Lock size={20} aria-hidden="true" />
+              <p>
+                <strong>Journey booked · {booking.reference}</strong>
+                Your route is locked. You can only track it now, or cancel it
+                from Live Map (no refund).
+              </p>
+              <button type="button" onClick={() => setTicketOpen(true)}>
+                <TicketIcon size={18} /> View ticket
+              </button>
+            </div>
+          )}
+
           <section className="jm-choices" aria-labelledby="jm-choices-title">
             <h2 id="jm-choices-title">Select your journey</h2>
             <fieldset
@@ -154,7 +208,7 @@ export default function Journey() {
                 return (
                   <article
                     key={option.id}
-                    className={`jm-route ${option.id} ${isSelected ? "selected" : ""}`}
+                    className={`jm-route ${option.id} ${isSelected ? "selected" : ""} ${locked && !isSelected ? "locked" : ""}`}
                   >
                     <label className="jm-route-pick">
                       <input
@@ -162,6 +216,7 @@ export default function Journey() {
                         name="journey-style"
                         value={option.id}
                         checked={isSelected}
+                        disabled={locked && !isSelected}
                         onChange={() => choose(option.id)}
                       />
                       <span className="jm-route-head">
@@ -309,14 +364,20 @@ export default function Journey() {
               </aside>
             </div>
             <div className="jm-actions">
-              <button
-                type="button"
-                className="jm-start"
-                aria-haspopup="dialog"
-                onClick={() => setBookingOpen(true)}
-              >
-                Start journey <ArrowRight size={20} />
-              </button>
+              {booking ? (
+                <Link className="jm-start" to={`/tracking?${query}`}>
+                  Track journey <ArrowRight size={20} />
+                </Link>
+              ) : (
+                <button
+                  type="button"
+                  className="jm-start"
+                  aria-haspopup="dialog"
+                  onClick={() => setBookingOpen(true)}
+                >
+                  Start journey <ArrowRight size={20} />
+                </button>
+              )}
               <button
                 type="button"
                 className={`jm-save ${saved ? "saved" : ""}`}
@@ -338,7 +399,13 @@ export default function Journey() {
         steps={steps}
         route={selected}
         arrival={clockTime(selected.duration)}
-        dateLabel={departureDate()}
+        query={query}
+        trackHref={`/tracking?${query}`}
+      />
+      <TicketModal
+        open={ticketOpen}
+        booking={booking}
+        onClose={() => setTicketOpen(false)}
         trackHref={`/tracking?${query}`}
       />
     </div>
