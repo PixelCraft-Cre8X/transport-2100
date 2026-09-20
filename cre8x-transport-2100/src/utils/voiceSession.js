@@ -273,9 +273,9 @@ export function createVoiceSession({
       }
       try {
         synthesis.cancel();
+        // Keep the browser's default voice, matching live map guidance.
         const speech = new Utterance(message);
         const version = revision;
-        speech.lang = "en-US";
         utterance = speech;
         speech.onend = () => {
           if (disposed || utterance !== speech || version !== revision) return;
