@@ -138,3 +138,15 @@ export function routeWaypoints(from, to, { direct = false } = {}) {
     .sort((a, b) => direction * (a.coordinates[1] - b.coordinates[1]));
   return [from.coordinates, ...between.map((t) => t.coordinates), to.coordinates];
 }
+
+// The demo departure is always tomorrow at 09:00.
+export function departureDay() {
+  const day = new Date();
+  day.setDate(day.getDate() + 1);
+  return day;
+}
+export function formatDay(day, { year = false } = {}) {
+  const weekday = day.toLocaleDateString("en-US", { weekday: "short" });
+  const month = day.toLocaleDateString("en-US", { month: "short" });
+  return `${weekday}, ${day.getDate()} ${month}${year ? ` ${day.getFullYear()}` : ""}`;
+}
