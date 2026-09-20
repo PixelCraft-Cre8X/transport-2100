@@ -203,7 +203,6 @@ export default function Layout() {
         </main>
 
         <footer className="page-footer">
-          <span>One island. Infinite possibilities.</span>
           <span>moveone · SRI LANKA, REIMAGINED · 2100</span>
           <span className="footer-network">
             <Radio size={13} /> Network connected{" "}
