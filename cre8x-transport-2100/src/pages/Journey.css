@@ -83,7 +83,6 @@
   color: var(--jm-muted);
 }
 
-.jm-link:focus-visible,
 .jm-controls button:focus-visible,
 .jm-full-map:focus-visible,
 .jm-start:focus-visible,
@@ -291,15 +290,8 @@
 }
 
 .jm-route-foot {
-  position: relative;
-  z-index: 1;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
   margin-top: 12px;
   padding-left: 12px;
-  pointer-events: none;
 }
 
 .jm-chain {
@@ -320,23 +312,6 @@
 
 .jm-chain svg[width="14"] {
   color: var(--jm-muted);
-}
-
-.jm-link {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 6px 0;
-  border: 0;
-  background: none;
-  color: var(--jm-cyan);
-  font-size: var(--text-sm);
-  pointer-events: auto;
-}
-
-.jm-link:hover {
-  text-decoration: underline;
-  text-underline-offset: 4px;
 }
 
 /* Map */
@@ -942,14 +917,6 @@
   .jm-route-metrics {
     grid-template-columns: repeat(3, auto);
     justify-content: space-between;
-  }
-
-  .jm-route-foot {
-    flex-wrap: wrap;
-  }
-
-  .jm-link {
-    white-space: nowrap;
   }
 
   .jm-long {

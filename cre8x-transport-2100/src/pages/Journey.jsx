@@ -5,7 +5,6 @@ import {
   ArrowRight,
   ArrowUpRight,
   CalendarDays,
-  Footprints,
   Heart,
   MapPin,
 } from "lucide-react";
@@ -17,9 +16,12 @@ import {
 } from "../data/journeys";
 import { ModeIcon } from "../components/UI";
 import JourneyMap from "../components/JourneyMap";
-import Switch from "../components/Switch";
 import DestinationArt from "../components/DestinationArt";
 import "./Journey.css";
+
+// Recommended is not offered on this page; the healthy choice leads the list.
+const HIDDEN_STYLES = ["recommended"];
+const TOP_STYLE = "healthy";
 
 function departureDate() {
   const day = new Date();
@@ -58,25 +60,18 @@ export default function Journey() {
   const [params, setParams] = useSearchParams();
   const journey = readJourney(params);
   const { from, to, walking } = journey;
-  const { options: routes, selected } = journey;
+  const routes = journey.options
+    .filter((o) => !HIDDEN_STYLES.includes(o.id))
+    .sort((a, b) => (b.id === TOP_STYLE) - (a.id === TOP_STYLE));
+  const selected =
+    routes.find((o) => o.id === journey.selected.id) || routes[0];
   const steps = withStartTimes(selected.segments);
   const query = journeyQuery(from.name, to.name, selected.id, walking);
-  const detailsRef = useRef(null);
   const optionsRef = useRef(null);
   const [saved, setSaved] = useState(false);
 
   const choose = (style) =>
     setParams(journeyQuery(from.name, to.name, style, walking));
-  const showDetails = (style) => {
-    choose(style);
-    if (window.matchMedia("(max-width: 1023px)").matches) {
-      detailsRef.current?.scrollIntoView({
-        behavior: "smooth",
-        block: "start",
-      });
-    }
-  };
-  const includeWalking = walking === "include";
 
   // On phones the routes sit in a sideways carousel; keep the chosen one centred
   // (scrolling the carousel itself, never the page).
@@ -109,24 +104,6 @@ export default function Journey() {
               <CalendarDays size={20} />
               Depart at 09:00 <i aria-hidden="true">·</i>
               <span className="jm-date">{departureDate()}</span>
-            </span>
-            <span className="jm-toggle-row">
-              <Footprints size={20} />
-              <span id="jm-walking-label">Include walking</span>
-              <Switch
-                checked={includeWalking}
-                labelledBy="jm-walking-label"
-                onChange={(on) =>
-                  setParams(
-                    journeyQuery(
-                      from.name,
-                      to.name,
-                      selected.id,
-                      on ? "include" : "low",
-                    ),
-                  )
-                }
-              />
             </span>
           </div>
 
@@ -196,13 +173,6 @@ export default function Journey() {
                           </span>
                         ))}
                       </span>
-                      <button
-                        type="button"
-                        className="jm-link"
-                        onClick={() => showDetails(option.id)}
-                      >
-                        View details <ArrowRight size={16} />
-                      </button>
                     </div>
                   </article>
                 );
@@ -240,7 +210,6 @@ export default function Journey() {
           <section
             className="jm-details"
             id="journey-details"
-            ref={detailsRef}
             aria-label="Journey details"
           >
             <h2>Journey details</h2>
