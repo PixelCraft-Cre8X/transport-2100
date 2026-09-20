@@ -113,7 +113,6 @@ export function createBooking({
     fare,
     fee: SERVICE_FEE,
     total: fare + SERVICE_FEE,
-    emissionsSaved: route.emissionsSaved,
   };
 }
 

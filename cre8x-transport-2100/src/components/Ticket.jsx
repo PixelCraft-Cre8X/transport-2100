@@ -7,7 +7,6 @@ import {
   CornerDownRight,
   Download,
   Info,
-  Leaf,
   Share2,
   Wallet,
   X,
@@ -221,14 +220,6 @@ export default function Ticket({ booking, titleId, onClose, children }) {
             <div>
               <dt>Total Fare</dt>
               <dd className="big">{formatFare(booking.total)}</dd>
-            </div>
-            <div className="tc-green">
-              <Leaf size={28} aria-hidden="true" />
-              <span>
-                <strong>Greener travel</strong>
-                <em>~ {booking.emissionsSaved}% lower emissions</em>
-                <small>compared to car travel.</small>
-              </span>
             </div>
           </dl>
         </div>
