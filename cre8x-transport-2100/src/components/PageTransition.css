@@ -1,0 +1,85 @@
+.page-transition {
+  width: 100%;
+}
+
+.page-transition-enter {
+  animation: pageTransitionEnter 200ms ease-out both;
+}
+
+.page-transition-exit {
+  animation: pageTransitionExit 140ms ease-out both;
+  pointer-events: none;
+}
+
+@keyframes pageTransitionEnter {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes pageTransitionExit {
+  from {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  to {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+}
+
+@media (max-width: 767px) {
+  /* A transform on this wrapper would create a containing block for Home's
+     fixed background. Use relative top movement on mobile instead. */
+  .page-transition {
+    position: relative;
+  }
+
+  .page-transition-enter {
+    animation-name: pageTransitionEnterMobile;
+    animation-duration: 180ms;
+  }
+
+  .page-transition-exit {
+    animation-name: pageTransitionExitMobile;
+    animation-duration: 120ms;
+  }
+
+  @keyframes pageTransitionEnterMobile {
+    from {
+      opacity: 0;
+      top: 8px;
+    }
+
+    to {
+      opacity: 1;
+      top: 0;
+    }
+  }
+
+  @keyframes pageTransitionExitMobile {
+    from {
+      opacity: 1;
+      top: 0;
+    }
+
+    to {
+      opacity: 0;
+      top: -4px;
+    }
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .page-transition-enter,
+  .page-transition-exit {
+    animation: none;
+  }
+}

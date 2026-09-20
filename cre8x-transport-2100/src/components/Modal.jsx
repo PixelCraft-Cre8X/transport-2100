@@ -23,17 +23,35 @@ export default function Modal({
 
   useEffect(() => {
     const previous = document.activeElement;
-    const overflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    ref.current?.focus();
+    // Freeze the page behind the popup. `overflow: hidden` alone doesn't stop
+    // iOS Safari scrolling it, so the page is pinned in place and put back at
+    // the same scroll position afterwards.
+    const body = document.body;
+    const saved = {
+      overflow: body.style.overflow,
+      position: body.style.position,
+      top: body.style.top,
+      width: body.style.width,
+      paddingRight: body.style.paddingRight,
+    };
+    const scrollY = window.scrollY;
+    // Losing the scrollbar would widen the page and make it jump sideways.
+    const scrollbar = window.innerWidth - document.documentElement.clientWidth;
+    body.style.overflow = "hidden";
+    body.style.position = "fixed";
+    body.style.top = `-${scrollY}px`;
+    body.style.width = "100%";
+    if (scrollbar > 0) body.style.paddingRight = `${scrollbar}px`;
+    ref.current?.focus({ preventScroll: true });
     const onKey = (event) => {
       if (event.key === "Escape") closeRef.current();
     };
     document.addEventListener("keydown", onKey);
     return () => {
       document.removeEventListener("keydown", onKey);
-      document.body.style.overflow = overflow;
-      previous?.focus?.();
+      Object.assign(body.style, saved);
+      window.scrollTo(0, scrollY);
+      previous?.focus?.({ preventScroll: true });
     };
   }, [ref]);
 

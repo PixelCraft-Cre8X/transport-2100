@@ -24,6 +24,7 @@ export function createVoiceSession({
   onTranscript,
   onRequest,
   onMicrophoneUnavailable,
+  greeting = voiceGreeting,
   timers = globalThis,
 }) {
   let state = initialVoiceState(permission);
@@ -351,7 +352,7 @@ export function createVoiceSession({
         return;
       }
     }
-    if (greet) speak(voiceGreeting, "greeting");
+    if (greet) speak(greeting, "greeting");
     else {
       emit("idle");
       listen();

@@ -20,7 +20,8 @@
   display: flex;
   flex-direction: column;
   width: 100%;
-  height: 100dvh;
+  height: 100vh;
+  height: 100svh;
   overflow: hidden;
   border-radius: 0;
   color: #e6eef6;
@@ -148,6 +149,9 @@
   min-height: 0;
   padding: 18px 18px 24px;
   overflow-y: auto;
+  /* Scrolling past the end of the popup must not scroll the page behind it. */
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
 }
 
 .bk-step-form {
@@ -202,6 +206,16 @@
 .bk-field input[type="time"] {
   color-scheme: dark;
   min-width: 0;
+  -webkit-appearance: none;
+  appearance: none;
+  text-align: left;
+}
+
+/* iOS gives these a taller, centred box by default. */
+.bk-field input[type="date"]::-webkit-date-and-time-value,
+.bk-field input[type="time"]::-webkit-date-and-time-value {
+  min-height: 1.2em;
+  text-align: left;
 }
 
 .bk-field input::placeholder {
@@ -856,10 +870,41 @@
   }
 }
 
-/* Very narrow phones: date and time stack so the date isn't clipped. */
-@media (max-width: 379px) {
+/* Small phones: a slimmer header leaves more of the screen for the form. */
+@media (max-width: 479px) {
+  .bk-heading p {
+    display: none;
+  }
+
+  .bk-header {
+    padding-block: 14px 10px;
+  }
+
+  .bk-header-icon {
+    width: 44px;
+    height: 44px;
+  }
+}
+
+/* Phones: the date and time fields are compact and stay side by side. Their
+   text stays at 16px, because iOS zooms the whole page in on smaller inputs. */
+@media (max-width: 559px) {
   .bk-fields .bk-pair {
-    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  .bk-fields .bk-pair label {
+    font-size: var(--text-xs);
+    white-space: nowrap;
+  }
+
+  .bk-fields .bk-pair input {
+    height: 40px;
+    padding: 0 10px;
+  }
+
+  .bk-fields .bk-pair input::-webkit-calendar-picker-indicator {
+    display: none;
   }
 }
 
