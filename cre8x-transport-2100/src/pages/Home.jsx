@@ -135,7 +135,12 @@ export default function Home() {
       </section>
 
       <div className="home-bottom">
-        <section className="assistant-card glass-panel">
+        <button
+          className="assistant-card glass-panel"
+          type="button"
+          aria-label="Open Journey AI"
+          onClick={onOpenAI}
+        >
           <div className="assistant-orb" aria-hidden="true">
             <ModeIcon mode="sparkles" size={27} />
           </div>
@@ -143,14 +148,10 @@ export default function Home() {
             <span className="eyebrow">JOURNEY AI</span>
             <h2>Plan your trip with voice.</h2>
           </div>
-          <button
-            className="button assistant-button"
-            type="button"
-            onClick={onOpenAI}
-          >
+          <span className="button assistant-button">
             Ask Journey AI <ArrowUpRight size={16} />
-          </button>
-        </section>
+          </span>
+        </button>
 
         <section
           className="network-panel glass-panel"

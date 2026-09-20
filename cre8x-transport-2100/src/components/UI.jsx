@@ -1,7 +1,7 @@
 import {
   TrainFront,
   BusFront,
-  Plane,
+  Drone,
   Route,
   Footprints,
   Sparkles,
@@ -13,7 +13,7 @@ import {
 const icons = {
   rail: TrainFront,
   bus: BusFront,
-  air: Plane,
+  air: Drone,
   road: Route,
   walk: Footprints,
   sparkles: Sparkles,

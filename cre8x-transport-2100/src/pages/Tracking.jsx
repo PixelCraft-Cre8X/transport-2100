@@ -166,7 +166,6 @@ export default function Tracking() {
           currentIndex={currentIndex}
           minutesToNext={minutesToNext}
           arrival={arrival}
-          emissionsSaved={selected.emissionsSaved}
         />
 
         <aside className="tk-panel" aria-label="Journey progress">

@@ -16,6 +16,7 @@
 }
 
 .tk-header .back-link {
+  justify-self: start;
   margin: 0 0 16px;
 }
 
@@ -522,43 +523,6 @@
   color: #67e8f9;
 }
 
-.tk-green {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-}
-
-.tk-green > div {
-  display: grid;
-  gap: 2px;
-}
-
-.tk-green strong {
-  font-size: 1rem;
-}
-
-.tk-green span {
-  color: #5eead4;
-  font-size: 0.9375rem;
-  font-weight: 600;
-}
-
-.tk-green small {
-  color: var(--tk-muted);
-  font-size: var(--text-xs);
-}
-
-.tk-green .tk-green-icon {
-  display: grid;
-  flex: none;
-  place-items: center;
-  width: 56px;
-  height: 56px;
-  border-radius: 14px;
-  background: rgba(52, 211, 153, 0.16);
-  color: #4ade80;
-}
-
 /* Below the overlay layout the side cards stay compact. */
 @media (max-width: 1319px) {
   .tk-legend {
@@ -576,10 +540,6 @@
     margin-bottom: 0;
   }
 
-  .tk-green .tk-green-icon {
-    width: 44px;
-    height: 44px;
-  }
 }
 
 .tk-layers-toggle {
@@ -932,10 +892,6 @@
     grid-template-columns: 1fr 1fr;
   }
 
-  .tk-green {
-    grid-column: 1 / -1;
-  }
-
   .tk-riding {
     grid-template-columns: auto minmax(0, 1fr) auto;
   }
@@ -999,10 +955,6 @@
     -webkit-backdrop-filter: blur(12px);
   }
 
-  .tk-green {
-    width: 268px;
-    margin-top: auto;
-  }
 }
 
 @media (max-width: 479px) {
