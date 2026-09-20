@@ -27,7 +27,7 @@ import RouteTimeline from "../components/RouteTimeline";
 import TrackingMap from "../components/TrackingMap";
 import TicketModal from "../components/TicketModal";
 import CancelJourneyModal from "../components/CancelJourneyModal";
-import { clearBooking, useBooking } from "../utils/booking";
+import { clearBooking, completeBooking, useBooking } from "../utils/booking";
 import "./Tracking.css";
 
 const START_PROGRESS = 0.14;
@@ -47,7 +47,12 @@ function nextStepText(segments, index, destination) {
 
 export default function Tracking() {
   const [params] = useSearchParams();
-  const booking = useBooking();
+  // A finished booking no longer applies to a fresh visit. It is read once, so
+  // finishing this journey doesn't change what the page is showing.
+  const stored = useBooking();
+  const [booking] = useState(() =>
+    stored && !stored.completed ? stored : null,
+  );
   const navigate = useNavigate();
   // A paid booking fixes the journey being tracked, whatever the URL says.
   const { from, to, selected, walking } = readJourney(
@@ -75,6 +80,11 @@ export default function Tracking() {
   const duration = selected.duration;
   const elapsed = progress * duration;
   const arrived = progress >= 1;
+
+  // Arriving finishes the journey, which frees the route for a new booking.
+  useEffect(() => {
+    if (arrived && booking) completeBooking();
+  }, [arrived, booking]);
   const currentIndex = Math.max(
     0,
     segments.findLastIndex((s) => s.start <= elapsed),
@@ -316,17 +326,30 @@ export default function Tracking() {
                 >
                   <Ticket size={18} /> View ticket
                 </button>
-                <button
-                  type="button"
-                  className="tk-action tk-cancel"
-                  aria-haspopup="dialog"
-                  onClick={() => setCancelOpen(true)}
-                >
-                  <Ban size={18} /> Cancel journey
-                </button>
+                {!arrived && (
+                  <button
+                    type="button"
+                    className="tk-action tk-cancel"
+                    aria-haspopup="dialog"
+                    onClick={() => setCancelOpen(true)}
+                  >
+                    <Ban size={18} /> Cancel journey
+                  </button>
+                )}
               </>
             )}
           </div>
+          {arrived && (
+            <div className="tk-finish">
+              <p>
+                <strong>You&apos;ve arrived in {to.name}.</strong> This journey
+                is finished. Plan your next trip from Discover.
+              </p>
+              <Link className="tk-finish-button" to="/">
+                Plan another journey <ArrowRight size={20} />
+              </Link>
+            </div>
+          )}
         </aside>
       </div>
       <TicketModal
