@@ -32,6 +32,33 @@ import "./Tracking.css";
 const START_PROGRESS = 0.14;
 const TICK_MS = 1000;
 const TICK_STEP = 0.006;
+const TRACKING_PROGRESS_PREFIX = "moveone.tracking-progress.";
+
+function readTrackingProgress(reference) {
+  if (!reference) return START_PROGRESS;
+  try {
+    const saved = Number(
+      sessionStorage.getItem(`${TRACKING_PROGRESS_PREFIX}${reference}`),
+    );
+    return Number.isFinite(saved)
+      ? Math.min(1, Math.max(START_PROGRESS, saved))
+      : START_PROGRESS;
+  } catch {
+    return START_PROGRESS;
+  }
+}
+
+function saveTrackingProgress(reference, progress) {
+  if (!reference) return;
+  try {
+    sessionStorage.setItem(
+      `${TRACKING_PROGRESS_PREFIX}${reference}`,
+      String(progress),
+    );
+  } catch {
+    // Tracking still works if session storage is unavailable.
+  }
+}
 
 function nextStepText(segments, index, destination) {
   if (index >= segments.length - 1) return `Welcome to ${destination}`;
@@ -61,7 +88,10 @@ export default function Tracking() {
   const [cancelOpen, setCancelOpen] = useState(false);
   const base = booking?.departureMinutes;
   const segments = withStartTimes(selected.segments, base);
-  const [progress, setProgress] = useState(START_PROGRESS);
+  const trackingReference = booking?.reference;
+  const [progress, setProgress] = useState(() =>
+    readTrackingProgress(trackingReference),
+  );
   const [playing, setPlaying] = useState(true);
   const [voice, setVoice] = useState(false);
   const [shared, setShared] = useState(false);
@@ -75,6 +105,10 @@ export default function Tracking() {
     );
     return () => clearInterval(timer);
   }, [running]);
+
+  useEffect(() => {
+    saveTrackingProgress(trackingReference, progress);
+  }, [trackingReference, progress]);
 
   const duration = selected.duration;
   const elapsed = progress * duration;
