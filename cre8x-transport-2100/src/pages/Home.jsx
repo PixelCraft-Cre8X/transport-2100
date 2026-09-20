@@ -11,7 +11,8 @@ import {
 import JourneyPlannerCard from "../components/JourneyPlannerCard";
 import { SectionHeader, TransportModeCard, ModeIcon } from "../components/UI";
 import { journeyQuery } from "../data/journeys";
-import { locations, networkStatus, transportModes } from "../data/network";
+import { networkStatus, transportModes } from "../data/network";
+import { journeyDestinations } from "../utils/journeyDestinations";
 
 // Drop replacement JPGs into src/assets/images/ using these exact filenames.
 // Existing PNG artwork is supported too; with no files, the CSS glow remains.
@@ -259,7 +260,7 @@ function QuickDestinationEditor({
           Choose exactly four places to keep close at hand.
         </p>
         <div className="destination-choice-list">
-          {locations.map((location) => {
+          {journeyDestinations.map((location) => {
             const selected = draftDestinations.includes(location.name);
             const unavailable = !selected && draftDestinations.length >= 4;
             return (
