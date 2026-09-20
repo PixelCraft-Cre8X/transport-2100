@@ -70,7 +70,13 @@ function Navigation({
 function Header({ search, pathname, onOpenAI, requestingMicrophone }) {
   return (
     <header
-      className={`site-header glass-nav${pathname === "/" ? " home-header" : ""}`}
+      className={`site-header glass-nav${
+        pathname === "/"
+          ? " home-header"
+          : pathname === "/journey" || pathname === "/tracking"
+            ? " route-header"
+            : ""
+      }`}
     >
       <div className="header-inner">
         <Brand />

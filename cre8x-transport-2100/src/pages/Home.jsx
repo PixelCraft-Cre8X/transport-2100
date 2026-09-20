@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link, useOutletContext } from "react-router-dom";
 import {
   ArrowRight,
@@ -36,6 +36,8 @@ const initialQuickDestinations = [
 
 export default function Home() {
   const { onOpenAI } = useOutletContext();
+  const transportGridRef = useRef(null);
+  const [activeTransportCard, setActiveTransportCard] = useState(0);
   const [quickDestinations, setQuickDestinations] = useState(
     initialQuickDestinations,
   );
@@ -64,6 +66,31 @@ export default function Home() {
     setQuickDestinations(draftDestinations);
     setEditorOpen(false);
   }
+
+  useEffect(() => {
+    const grid = transportGridRef.current;
+    if (!grid) return undefined;
+
+    function updateActiveCard() {
+      const cards = Array.from(grid.children);
+      if (!cards.length) return;
+
+      const currentScroll = grid.scrollLeft;
+      const nextIndex = cards.reduce(
+        (closestIndex, card, index) =>
+          Math.abs(card.offsetLeft - currentScroll) <
+          Math.abs(cards[closestIndex].offsetLeft - currentScroll)
+            ? index
+            : closestIndex,
+        0,
+      );
+      setActiveTransportCard(nextIndex);
+    }
+
+    grid.addEventListener("scroll", updateActiveCard, { passive: true });
+    updateActiveCard();
+    return () => grid.removeEventListener("scroll", updateActiveCard);
+  }, []);
 
   return (
     <div className="home-page page-enter">
@@ -125,11 +152,30 @@ export default function Home() {
 
       <section className="transport-section">
         <SectionHeader eyebrow="TRANSPORT OPTIONS" title="Ways to move" />
-        <div className="transport-grid">
+        <div className="transport-grid" ref={transportGridRef}>
           {transportModes
             .filter((mode) => mode.id !== "road")
             .map((mode) => (
               <TransportModeCard key={mode.id} mode={mode} />
+            ))}
+        </div>
+        <div className="transport-carousel-dots" aria-label="Ways to move slides">
+          {transportModes
+            .filter((mode) => mode.id !== "road")
+            .map((mode, index) => (
+              <button
+                key={mode.id}
+                className={index === activeTransportCard ? "active" : ""}
+                type="button"
+                aria-label={`Show ${mode.short}`}
+                onClick={() => {
+                  transportGridRef.current?.children[index]?.scrollIntoView({
+                    behavior: "smooth",
+                    block: "nearest",
+                    inline: "start",
+                  });
+                }}
+              />
             ))}
         </div>
       </section>
