@@ -55,6 +55,24 @@ export function useBooking() {
   }, [raw]);
 }
 
+/**
+ * Each ride is priced as its share of the route fare (by ride time), times the
+ * seats chosen on it, so vehicles can carry different numbers of seats.
+ */
+export function rideFares(rides, route, seats) {
+  const ridingMinutes = rides.reduce((sum, ride) => sum + ride.minutes, 0);
+  let assigned = 0;
+  return rides.map((ride, i) => {
+    const perSeat =
+      i === rides.length - 1
+        ? route.cost - assigned
+        : Math.round((route.cost * ride.minutes) / ridingMinutes);
+    assigned += perSeat;
+    const count = seats[ride.start].length;
+    return { ride, seats: count, amount: perSeat * count };
+  });
+}
+
 const pad = (n) => String(n).padStart(2, "0");
 
 export function createBooking({
@@ -70,8 +88,11 @@ export function createBooking({
   const day = departureDay();
   const stamp = `${String(day.getFullYear()).slice(2)}${pad(day.getMonth() + 1)}${pad(day.getDate())}`;
   const rides = steps.filter((s) => s.mode !== "walk");
-  const passengers = seats[rides[0].start].length;
-  const fare = route.cost * passengers;
+  const passengers = Math.max(...rides.map((ride) => seats[ride.start].length));
+  const fare = rideFares(rides, route, seats).reduce(
+    (sum, r) => sum + r.amount,
+    0,
+  );
   return {
     reference: `MVN${stamp}-${Math.floor(1000 + Math.random() * 9000)}`,
     name: passenger.name,
