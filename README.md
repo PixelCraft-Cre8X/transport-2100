@@ -134,11 +134,8 @@ transport-2100/
     │   ├── pages/              # Discover, Journey, Tracking
     │   └── utils/              # Booking, voice, and journey helpers
     ├── tests/                  # Project tests
-    ├── package.json
-    └── README.md               # Detailed technical/testing notes
+    └── package.json
 ```
-
-For deeper documentation of the Journey AI voice interaction, route rules, tests, and browser troubleshooting, see the [application's technical README](cre8x-transport-2100/README.md).
 
 ## Team PixelCraft
 
